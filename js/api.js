@@ -5,16 +5,48 @@ const CTD_API = (() => {
     return url.replace(/\/+$/,"");
   }
 
-  async function getPublic(){
-    const response = await fetch(
-      `${apiUrl()}?api=public&_=${Date.now()}`,
-      { method:"GET", cache:"no-store", redirect:"follow" }
-    );
+  function jsonp(url, timeoutMs = 12000){
+    return new Promise((resolve, reject) => {
+      const callbackName = `__ctd_jsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const script = document.createElement('script');
+      let done = false;
 
-    if(!response.ok) throw new Error(`API HTTP ${response.status}`);
-    const json = await response.json();
-    if(json && json.ok === false) throw new Error(json.error || "API error");
-    return json.data || json;
+      const cleanup = () => {
+        if(done) return;
+        done = true;
+        clearTimeout(timer);
+        if(script.parentNode) script.parentNode.removeChild(script);
+        try { delete window[callbackName]; } catch(_) { window[callbackName] = undefined; }
+      };
+
+      window[callbackName] = payload => {
+        cleanup();
+        if(payload && payload.ok === false){
+          reject(new Error(payload.error || 'API error'));
+          return;
+        }
+        resolve(payload && payload.data ? payload.data : payload);
+      };
+
+      script.onerror = () => {
+        cleanup();
+        reject(new Error('JSONP connection failed'));
+      };
+
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('JSONP timeout'));
+      }, timeoutMs);
+
+      const sep = url.includes('?') ? '&' : '?';
+      script.src = `${url}${sep}callback=${encodeURIComponent(callbackName)}&_=${Date.now()}`;
+      script.async = true;
+      document.head.appendChild(script);
+    });
+  }
+
+  function getPublic(){
+    return jsonp(`${apiUrl()}?api=public`);
   }
 
   return { getPublic };
