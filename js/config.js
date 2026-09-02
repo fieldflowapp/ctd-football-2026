@@ -1,8 +1,7 @@
 window.CTD_CONFIG = {
   TOURNAMENT_NAME: "Charles T. Darling Football Tournament 2026",
   API_URLS: [
-    "https://script.google.com/a/macros/fieldflow.cl/s/AKfycbxmEE0Ag_e038Il9N26TU7VzZ7PYwtEKyqzEyyja3vKhQc9WlYwzyVkEYrXFGqEpT94/exec",
-    "https://script.google.com/macros/s/AKfycbxmEE0Ag_e038Il9N26TU7VzZ7PYwtEKyqzEyyja3vKhQc9WlYwzyVkEYrXFGqEpT94/exec"
+    "https://script.google.com/macros/s/AKfycbw2GEuHniWpXM_knq6vwuITLPsclsD44RkpWbje8u8G1quVwCOlgq9aNAZvxxP3ZsYW/exec"
   ],
   REFRESH_SECONDS: 15,
   SCHOOL_LOGO: "https://drive.google.com/thumbnail?id=17GaYbEA3Nj54f0pueVQtphAfG05kObnp&sz=w1000",
