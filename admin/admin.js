@@ -25,6 +25,37 @@ function showLogin(){
   $('loginView').classList.remove('hidden');
 }
 
+async function loadLoginLogo(){
+  const img=$('loginLogoImg');
+  if(!img)return;
+
+  try{
+    const {data,error}=await CTD_SUPABASE
+      .from('media_assets')
+      .select('object_path,alt_text,display_name')
+      .eq('asset_key','fieldflow-login')
+      .eq('active',true)
+      .maybeSingle();
+
+    if(error)throw error;
+
+    if(!data?.object_path){
+      img.style.display='none';
+      return;
+    }
+
+    const {data:urlData}=CTD_SUPABASE.storage
+      .from('logos')
+      .getPublicUrl(data.object_path);
+
+    img.src=urlData.publicUrl;
+    img.alt=data.alt_text||data.display_name||'FieldFlow';
+    img.style.display='block';
+  }catch(_){
+    img.style.display='none';
+  }
+}
+
 function hydrate(){
   try{
     const raw=localStorage.getItem(S.cacheKey);
@@ -255,6 +286,7 @@ $('logoutBtn').addEventListener('click',async()=>{
 
 document.addEventListener('DOMContentLoaded',async()=>{
   $('schoolLogo').src=CTD_CONFIG.SCHOOL_LOGO;
+  await loadLoginLogo();
 
   hydrate();
 
