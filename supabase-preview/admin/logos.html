@@ -9,7 +9,7 @@
   <style>
     .logos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:18px}
     .logo-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px}
-    .logo-card img{width:100%;height:130px;object-fit:contain;background:#0b1f3a;border-radius:12px}
+    .logo-card img{width:100%;height:130px;object-fit:contain;background:#fff;border-radius:12px}
     .logo-card h3{margin:10px 0 4px;font-size:15px}.logo-card p{margin:0;color:var(--muted);font-size:11px;word-break:break-all}
     .upload-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
     .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.upload-grid .full{grid-column:1/-1}
@@ -70,8 +70,12 @@ async function requireSession(){
   if(!session) location.href='./';
 }
 
-function publicUrl(path){
-  return db.storage.from('logos').getPublicUrl(path).data.publicUrl;
+function publicUrl(asset){
+  if(!asset) return '';
+  if(asset.bucket_id === 'external' || /^https?:\/\//i.test(asset.object_path||'')){
+    return asset.object_path || '';
+  }
+  return db.storage.from(asset.bucket_id || 'logos').getPublicUrl(asset.object_path).data.publicUrl;
 }
 
 async function loadAssets(){
@@ -80,7 +84,7 @@ async function loadAssets(){
   $('count').textContent=data.length+' asset'+(data.length===1?'':'s');
   $('logos').innerHTML=data.map(a=>`
     <article class="logo-card">
-      <img src="${esc(publicUrl(a.object_path))}" alt="${esc(a.alt_text||a.display_name)}">
+      <img src="${esc(publicUrl(a))}" alt="${esc(a.alt_text||a.display_name)}" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'">
       <h3>${esc(a.display_name)}</h3>
       <p><strong>${esc(a.asset_key)}</strong></p>
       <p>${esc(a.kind)} · ${esc(a.object_path)}</p>
