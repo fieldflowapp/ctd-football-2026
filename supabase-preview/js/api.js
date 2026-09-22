@@ -34,8 +34,10 @@ const CTD_API = (() => {
 
       homeTeamId: m.home_team_id,
       homeTeam: m.home_team_name || '',
+      homeLogo: m.home_team_logo_url || '',
       awayTeamId: m.away_team_id,
       awayTeam: m.away_team_name || '',
+      awayLogo: m.away_team_logo_url || '',
 
       homeScore: m.home_score,
       awayScore: m.away_score,
@@ -62,6 +64,7 @@ const CTD_API = (() => {
       position: Number(r.rank_position),
       teamId: r.tournament_team_id,
       team: r.team_name,
+      teamLogo: r.team_logo_url || '',
       played: r.played,
       won: r.won,
       drawn: r.drawn,
