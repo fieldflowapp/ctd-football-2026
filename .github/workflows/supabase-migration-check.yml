@@ -1,0 +1,39 @@
+name: Supabase migration checks
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check js/config.js
+          node --check js/api.js
+          node --check js/app.js
+          node --check admin/admin-api.js
+          node --check admin/admin.js
+
+      - name: Ensure Apps Script backend is removed from migrated frontend
+        run: |
+          ! grep -R "script.google.com\|google.script.run\|api=public\|JSONP"             index.html js admin print referees
+
+      - name: Verify required migration files
+        run: |
+          test -f index.html
+          test -f admin/index.html
+          test -f print/index.html
+          test -f referees/index.html
+
+      - name: Supabase public smoke test
+        run: node tests/supabase-smoke.mjs
