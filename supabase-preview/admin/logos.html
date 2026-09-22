@@ -72,10 +72,10 @@ async function requireSession(){
 
 function publicUrl(asset){
   if(!asset) return '';
-  if(asset.bucket_id === 'external' || /^https?:\/\//i.test(asset.object_path||'')){
-    return asset.object_path || '';
-  }
-  return db.storage.from(asset.bucket_id || 'logos').getPublicUrl(asset.object_path).data.publicUrl;
+  const path=asset.object_path||'';
+  if(asset.bucket_id==='inline' || /^data:/i.test(path)) return path;
+  if(asset.bucket_id==='external' || /^https?:\/\//i.test(path)) return path;
+  return db.storage.from(asset.bucket_id||'logos').getPublicUrl(path).data.publicUrl;
 }
 
 async function loadAssets(){
