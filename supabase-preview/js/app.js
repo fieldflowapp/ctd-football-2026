@@ -114,6 +114,13 @@ function renderFinals(){
   `).join('');
 }
 
+function teamWithLogo(name,logo){
+  return '<span class="team-with-logo">'+
+    (logo?'<img class="team-logo" src="'+esc(logo)+'" alt="">':'')+
+    '<span>'+esc(name)+'</span>'+
+  '</span>';
+}
+
 function renderReferees(){
   const assigned=(DATA.matches||[]).filter(m=>m.refereeName);
   const refs=unique(assigned.map(m=>m.refereeName));
@@ -161,12 +168,12 @@ function matchCard(m,isFinal=false){
         ${m.refereeName?`<span class="badge">Ref: ${esc(m.refereeName)}</span>`:''}
       </div>
       <div class="match-grid">
-        <div class="team">${esc(m.homeTeam)}</div>
+        <div class="team">${teamWithLogo(m.homeTeam,m.homeLogo)}</div>
         <div>
           <div class="score">${hs} : ${as}</div>
           ${penalties}
         </div>
-        <div class="team">${esc(m.awayTeam)}</div>
+        <div class="team">${teamWithLogo(m.awayTeam,m.awayLogo)}</div>
       </div>
     </article>
   `;
@@ -187,7 +194,7 @@ function standingsTable(rows){
           ${rows.map(r=>`
             <tr class="${r.qualifiesFinal?'qualify':''}">
               <td><strong>${r.position}</strong></td>
-              <td class="left"><strong>${esc(r.team)}</strong></td>
+              <td class="left"><strong>${teamWithLogo(r.team,r.teamLogo)}</strong></td>
               <td>${r.played}</td><td>${r.won}</td><td>${r.drawn}</td><td>${r.lost}</td>
               <td>${r.goalsFor}</td><td>${r.goalsAgainst}</td>
               <td>${r.goalDifference>0?'+':''}${r.goalDifference}</td>
