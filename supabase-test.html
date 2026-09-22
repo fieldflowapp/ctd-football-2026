@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FieldFlow · Supabase Test</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #071d2d;
+      color: white;
+      padding: 30px;
+    }
+
+    .card {
+      max-width: 700px;
+      margin: auto;
+      background: #0d2538;
+      padding: 24px;
+      border-radius: 16px;
+    }
+
+    .ok {
+      color: #18d39e;
+    }
+
+    .error {
+      color: #ff4d4d;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      background: #061722;
+      padding: 16px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h1>FieldFlow Supabase Test</h1>
+
+  <div id="status">Connecting...</div>
+
+  <pre id="output"></pre>
+</div>
+
+
+<script>
+
+const SUPABASE_URL = 'https://qhsvvlcgwdmxxappplzh.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
+
+const client = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+
+async function testConnection() {
+
+  const status = document.getElementById('status');
+  const output = document.getElementById('output');
+
+  try {
+
+    // -----------------------------------------------------
+    // TOURNAMENT
+    // -----------------------------------------------------
+
+    const {
+      data: tournament,
+      error: tournamentError
+    } = await client
+      .from('tournaments')
+      .select('*')
+      .eq('slug', 'ctd-football-2026')
+      .single();
+
+    if (tournamentError) {
+      throw tournamentError;
+    }
+
+
+    // -----------------------------------------------------
+    // CATEGORIES
+    // -----------------------------------------------------
+
+    const {
+      data: categories,
+      error: categoriesError
+    } = await client
+      .from('tournament_categories')
+      .select('*')
+      .eq('tournament_id', tournament.id)
+      .order('sort_order');
+
+    if (categoriesError) {
+      throw categoriesError;
+    }
+
+
+    // -----------------------------------------------------
+    // MATCHES
+    // -----------------------------------------------------
+
+    const {
+      data: matches,
+      error: matchesError
+    } = await client
+      .from('matches')
+      .select('id')
+      .eq('tournament_id', tournament.id);
+
+    if (matchesError) {
+      throw matchesError;
+    }
+
+
+    // -----------------------------------------------------
+    // SUCCESS
+    // -----------------------------------------------------
+
+    status.innerHTML =
+      '<span class="ok">✅ Connected to Supabase</span>';
+
+    output.textContent =
+`${tournament.name}
+
+Categories:
+${categories.map(c => '- ' + c.name).join('\n')}
+
+Matches found: ${matches.length}`;
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    status.innerHTML =
+      '<span class="error">❌ Connection failed</span>';
+
+    output.textContent =
+      error.message || JSON.stringify(error, null, 2);
+
+  }
+
+}
+
+testConnection();
+
+</script>
+
+</body>
+</html>
