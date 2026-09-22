@@ -1,11 +1,29 @@
-const S={token:sessionStorage.getItem('ctd_admin_token')||'',data:null,filterCategory:'ALL',filterStatus:'ACTIVE',cacheKey:'ctd_admin_cache_v1'};
+const S={data:null,filterCategory:'ALL',filterStatus:'ACTIVE',cacheKey:'ctd_admin_cache_supabase_v1'};
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 
-function setConn(ok){const el=$('connection');el.textContent=ok?'Online':'Offline';el.className=`connection ${ok?'online':'offline'}`}
-function flash(msg,type='ok'){const el=$('flash');el.textContent=msg;el.className=`flash ${type}`;setTimeout(()=>el.classList.add('hidden'),2500)}
-function showAdmin(){$('loginView').classList.add('hidden');$('adminView').classList.remove('hidden')}
-function showLogin(){$('adminView').classList.add('hidden');$('loginView').classList.remove('hidden')}
+function setConn(ok){
+  const el=$('connection');
+  el.textContent=ok?'Online':'Offline';
+  el.className='connection '+(ok?'online':'offline');
+}
+
+function flash(msg,type='ok'){
+  const el=$('flash');
+  el.textContent=msg;
+  el.className='flash '+type;
+  setTimeout(()=>el.classList.add('hidden'),2500);
+}
+
+function showAdmin(){
+  $('loginView').classList.add('hidden');
+  $('adminView').classList.remove('hidden');
+}
+
+function showLogin(){
+  $('adminView').classList.add('hidden');
+  $('loginView').classList.remove('hidden');
+}
 
 function hydrate(){
   try{
@@ -18,34 +36,41 @@ function hydrate(){
     render();
     $('updatedText').textContent='Cached data · refreshing…';
     return true;
-  }catch(_){return false}
+  }catch(_){
+    return false;
+  }
 }
 
 async function refresh(silent=false){
   try{
-    if(!S.token)throw new Error('No session');
-    const data=await ADMIN_API.adminData(S.token);
+    const data=await ADMIN_API.adminData();
     S.data=data;
     localStorage.setItem(S.cacheKey,JSON.stringify({at:Date.now(),data}));
     setConn(true);
     render();
-    $('updatedText').textContent=`Updated ${new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+
+    $('updatedText').textContent=
+      String(data.role||'admin').toUpperCase()+
+      ' · Updated '+
+      new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
     if(!silent)flash('Tournament updated');
   }catch(e){
     setConn(false);
-    if(/session|token|unauthor/i.test(e.message||'')){
-      sessionStorage.removeItem('ctd_admin_token');
-      S.token='';
+
+    if(/session|auth|jwt|not authorized/i.test(e.message||'')){
       showLogin();
-      $('loginError').textContent='Session expired. Enter PIN again.';
+      $('loginError').textContent=e.message||'Session expired.';
       return;
     }
+
     if(!silent)flash(e.message||'Unable to refresh','error');
   }
 }
 
 function filtered(){
   const list=S.data?.matches||[];
+
   return list.filter(m=>{
     if(S.filterCategory!=='ALL'&&m.category!==S.filterCategory)return false;
     if(S.filterStatus==='FINAL'&&m.status!=='FINAL')return false;
@@ -56,71 +81,105 @@ function filtered(){
 
 function renderSummary(){
   const ms=S.data?.matches||[];
+
   $('summary').innerHTML=[
     ['Total',ms.length],
     ['Scheduled',ms.filter(m=>m.status==='SCHEDULED').length],
     ['Live',ms.filter(m=>m.status==='LIVE').length],
     ['Finished',ms.filter(m=>m.status==='FINAL').length]
-  ].map(([l,v])=>`<div class="metric"><div class="label">${l}</div><div class="value">${v}</div></div>`).join('');
+  ].map(([l,v])=>'<div class="metric"><div class="label">'+l+'</div><div class="value">'+v+'</div></div>').join('');
 }
 
-function n(v,d=''){return v===null||v===undefined?d:v}
+function n(v,d=''){
+  return v===null||v===undefined?d:v;
+}
 
 function refereeOptions(selected){
   const refs=S.data?.referees||[];
-  return `<option value="">No referee</option>`+refs.map(r=>`<option value="${esc(r.id)}" ${r.id===selected?'selected':''}>${esc(r.name||r.id)}</option>`).join('');
+
+  return '<option value="">No referee</option>'+
+    refs.map(r=>'<option value="'+esc(r.id)+'" '+(r.id===selected?'selected':'')+'>'+esc(r.name||r.id)+'</option>').join('');
 }
 
 function card(m){
   const id=esc(m.matchId);
   const final=m.status==='FINAL';
-  const finals=m.stage==='FINAL';
-  return `<article class="match ${final?'finalized':''}" data-id="${id}">
-    <div class="match-head">
-      <div class="meta">
-        <span class="pill">${esc(m.startTime)}</span>
-        <span class="pill">${esc(m.field)}</span>
-        <span class="pill">${esc(m.category)}</span>
-        <span class="pill">${esc(m.stage)}</span>
-        <span class="pill ${String(m.status||'').toLowerCase()}">${esc(m.status)}</span>
-      </div>
-      <strong>${id}</strong>
-    </div>
-    <div class="match-body">
-      <div class="team-name">${esc(m.homeTeam)}</div>
-      <div class="score-box">
-        <input data-k="homeScore" type="number" min="0" inputmode="numeric" value="${esc(n(m.homeScore,''))}">
-        <div class="score-sep">:</div>
-        <input data-k="awayScore" type="number" min="0" inputmode="numeric" value="${esc(n(m.awayScore,''))}">
-      </div>
-      <div class="team-name away">${esc(m.awayTeam)}</div>
-    </div>
-    <div class="match-controls">
-      <div class="field"><label>Home 🟨</label><input data-k="yellowHome" type="number" min="0" value="${n(m.yellowHome,0)}"></div>
-      <div class="field"><label>Home 🟥</label><input data-k="redHome" type="number" min="0" value="${n(m.redHome,0)}"></div>
-      <div class="field"><label>Away 🟨</label><input data-k="yellowAway" type="number" min="0" value="${n(m.yellowAway,0)}"></div>
-      <div class="field"><label>Away 🟥</label><input data-k="redAway" type="number" min="0" value="${n(m.redAway,0)}"></div>
-      ${finals?`<div class="field"><label>Pen. Home</label><input data-k="homePenalties" type="number" min="0" value="${esc(n(m.homePenalties,''))}"></div><div class="field"><label>Pen. Away</label><input data-k="awayPenalties" type="number" min="0" value="${esc(n(m.awayPenalties,''))}"></div>`:''}
-      <div class="field"><label>Status</label><select data-k="status"><option ${m.status==='SCHEDULED'?'selected':''}>SCHEDULED</option><option ${m.status==='LIVE'?'selected':''}>LIVE</option><option ${m.status==='FINAL'?'selected':''}>FINAL</option></select></div>
-      <div class="field"><label>Referee</label><select data-ref>${refereeOptions(m.refereeId)}</select></div>
-      <div class="save-wrap"><button class="btn save-btn" data-save type="button">Save</button></div>
-    </div>
-    <div class="match-msg" data-msg>${final?'Finished · controls hidden on mobile':''}</div>
-  </article>`;
+  const isFinalStage=m.stage==='FINAL';
+
+  let html='';
+  html+='<article class="match '+(final?'finalized':'')+'" data-id="'+id+'">';
+  html+='<div class="match-head"><div class="meta">';
+  html+='<span class="pill">'+esc(m.startTime)+'</span>';
+  html+='<span class="pill">'+esc(m.field)+'</span>';
+  html+='<span class="pill">'+esc(m.category)+'</span>';
+  html+='<span class="pill">'+esc(m.stage)+'</span>';
+  html+='<span class="pill '+String(m.status||'').toLowerCase()+'">'+esc(m.status)+'</span>';
+  html+='</div><strong>'+id.slice(0,8)+'</strong></div>';
+
+  html+='<div class="match-body">';
+  html+='<div class="team-name">'+esc(m.homeTeam)+'</div>';
+  html+='<div class="score-box">';
+  html+='<input data-k="homeScore" type="number" min="0" inputmode="numeric" value="'+esc(n(m.homeScore,''))+'">';
+  html+='<div class="score-sep">:</div>';
+  html+='<input data-k="awayScore" type="number" min="0" inputmode="numeric" value="'+esc(n(m.awayScore,''))+'">';
+  html+='</div>';
+  html+='<div class="team-name away">'+esc(m.awayTeam)+'</div>';
+  html+='</div>';
+
+  html+='<div class="match-controls">';
+  html+='<div class="field"><label>Home 🟨</label><input data-k="yellowHome" type="number" min="0" value="'+n(m.yellowHome,0)+'"></div>';
+  html+='<div class="field"><label>Home 🟥</label><input data-k="redHome" type="number" min="0" value="'+n(m.redHome,0)+'"></div>';
+  html+='<div class="field"><label>Away 🟨</label><input data-k="yellowAway" type="number" min="0" value="'+n(m.yellowAway,0)+'"></div>';
+  html+='<div class="field"><label>Away 🟥</label><input data-k="redAway" type="number" min="0" value="'+n(m.redAway,0)+'"></div>';
+
+  if(isFinalStage){
+    html+='<div class="field"><label>Pen. Home</label><input data-k="homePenalties" type="number" min="0" value="'+esc(n(m.homePenalties,''))+'"></div>';
+    html+='<div class="field"><label>Pen. Away</label><input data-k="awayPenalties" type="number" min="0" value="'+esc(n(m.awayPenalties,''))+'"></div>';
+  }
+
+  html+='<div class="field"><label>Status</label><select data-k="status">';
+  html+='<option '+(m.status==='SCHEDULED'?'selected':'')+'>SCHEDULED</option>';
+  html+='<option '+(m.status==='LIVE'?'selected':'')+'>LIVE</option>';
+  html+='<option '+(m.status==='FINAL'?'selected':'')+'>FINAL</option>';
+  html+='</select></div>';
+
+  html+='<div class="field"><label>Referee</label><select data-ref>'+refereeOptions(m.refereeId)+'</select></div>';
+  html+='<div class="save-wrap"><button class="btn save-btn" data-save type="button">Save</button></div>';
+  html+='</div>';
+
+  html+='<div class="match-msg" data-msg>'+(final?'Finished · controls hidden on mobile':'')+'</div>';
+  html+='</article>';
+
+  return html;
 }
 
 function render(){
   if(!S.data)return;
+
   renderSummary();
   const ms=filtered();
-  $('matches').innerHTML=ms.length?ms.map(card).join(''):'<div class="loading">No matches in this filter.</div>';
-  document.querySelectorAll('[data-save]').forEach(b=>b.addEventListener('click',()=>saveCard(b.closest('.match'))));
+
+  $('matches').innerHTML=
+    ms.length
+      ? ms.map(card).join('')
+      : '<div class="loading">No matches in this filter.</div>';
+
+  document.querySelectorAll('[data-save]').forEach(
+    b=>b.addEventListener('click',()=>saveCard(b.closest('.match')))
+  );
 }
 
 function readCard(el){
   const matchId=el.dataset.id;
-  const p={matchId};
+  const current=(S.data?.matches||[]).find(m=>m.matchId===matchId);
+
+  const p={
+    matchId,
+    stage:current?.stage||'GROUP'
+  };
+
   el.querySelectorAll('[data-k]').forEach(i=>p[i.dataset.k]=i.value);
+
   return p;
 }
 
@@ -129,35 +188,19 @@ async function saveCard(el){
   const msg=el.querySelector('[data-msg]');
   const p=readCard(el);
   const ref=el.querySelector('[data-ref]')?.value||'';
+
   btn.disabled=true;
   el.classList.add('saving');
   btn.textContent='Saving…';
   msg.textContent='Saving changes…';
-  const original=JSON.parse(JSON.stringify(S.data));
+
   try{
-    const m=S.data.matches.find(x=>x.matchId===p.matchId);
-    if(m){
-      Object.assign(m,p,{
-        homeScore:p.homeScore===''?null:Number(p.homeScore),
-        awayScore:p.awayScore===''?null:Number(p.awayScore),
-        yellowHome:Number(p.yellowHome||0),
-        redHome:Number(p.redHome||0),
-        yellowAway:Number(p.yellowAway||0),
-        redAway:Number(p.redAway||0),
-        homePenalties:p.homePenalties===''?null:Number(p.homePenalties),
-        awayPenalties:p.awayPenalties===''?null:Number(p.awayPenalties),
-        refereeId:ref,
-        refereeName:(S.data.referees||[]).find(r=>r.id===ref)?.name||''
-      });
-    }
-    localStorage.setItem(S.cacheKey,JSON.stringify({at:Date.now(),data:S.data}));
-    await ADMIN_API.saveMatch(S.token,p,ref);
+    await ADMIN_API.saveMatch(p,ref);
     setConn(true);
     msg.textContent='Saved ✓';
-    flash(`${p.matchId} saved`);
-    setTimeout(()=>refresh(true),150);
+    flash('Match saved');
+    await refresh(true);
   }catch(e){
-    S.data=original;
     setConn(false);
     msg.textContent=e.message||'Save failed';
     flash(e.message||'Save failed','error');
@@ -170,39 +213,67 @@ async function saveCard(el){
 
 $('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();
-  const pin=$('pin').value.trim();
+
+  const email=$('email').value.trim();
+  const password=$('password').value;
   const btn=e.currentTarget.querySelector('button');
+
   $('loginError').textContent='';
   btn.disabled=true;
-  btn.textContent='Checking…';
+  btn.textContent='Signing in…';
+
   try{
-    const r=await ADMIN_API.login(pin);
-    if(!r?.token)throw new Error('Invalid login response');
-    S.token=r.token;
-    sessionStorage.setItem('ctd_admin_token',S.token);
+    await ADMIN_API.login(email,password);
     showAdmin();
-    hydrate();
     await refresh(true);
   }catch(err){
     $('loginError').textContent=err.message||'Access denied';
   }finally{
     btn.disabled=false;
-    btn.textContent='Enter Admin';
+    btn.textContent='Sign in';
   }
 });
 
-$('categoryFilter').addEventListener('change',e=>{S.filterCategory=e.target.value;render()});
-$('statusFilter').addEventListener('change',e=>{S.filterStatus=e.target.value;render()});
-$('refreshBtn').addEventListener('click',()=>refresh());
-$('logoutBtn').addEventListener('click',async()=>{
-  const token=S.token;
-  sessionStorage.removeItem('ctd_admin_token');
-  S.token='';
-  showLogin();
-  try{if(token)await ADMIN_API.logout(token)}catch(_){ }
+$('categoryFilter').addEventListener('change',e=>{
+  S.filterCategory=e.target.value;
+  render();
 });
 
-document.addEventListener('DOMContentLoaded',()=>{
+$('statusFilter').addEventListener('change',e=>{
+  S.filterStatus=e.target.value;
+  render();
+});
+
+$('refreshBtn').addEventListener('click',()=>refresh());
+
+$('logoutBtn').addEventListener('click',async()=>{
+  try{await ADMIN_API.logout()}catch(_){}
+  localStorage.removeItem(S.cacheKey);
+  S.data=null;
+  showLogin();
+});
+
+document.addEventListener('DOMContentLoaded',async()=>{
   $('schoolLogo').src=CTD_CONFIG.SCHOOL_LOGO;
-  if(S.token){hydrate();showAdmin();refresh(true)}else showLogin();
+
+  hydrate();
+
+  try{
+    const session=await ADMIN_API.session();
+
+    if(session){
+      showAdmin();
+      await refresh(true);
+    }else{
+      showLogin();
+    }
+  }catch(e){
+    showLogin();
+  }
+
+  ADMIN_API.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_OUT'||!session){
+      showLogin();
+    }
+  });
 });
