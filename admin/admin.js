@@ -132,6 +132,13 @@ function refereeOptions(selected){
     refs.map(r=>'<option value="'+esc(r.id)+'" '+(r.id===selected?'selected':'')+'>'+esc(r.name||r.id)+'</option>').join('');
 }
 
+function teamAdminLabel(name,logo){
+  return '<span class="admin-team-with-logo">'+
+    (logo?'<img class="admin-team-logo" src="'+esc(logo)+'" alt="">':'')+
+    '<span>'+esc(name)+'</span>'+
+  '</span>';
+}
+
 function card(m){
   const id=esc(m.matchId);
   const final=m.status==='FINAL';
@@ -148,13 +155,13 @@ function card(m){
   html+='</div><strong>'+id.slice(0,8)+'</strong></div>';
 
   html+='<div class="match-body">';
-  html+='<div class="team-name">'+esc(m.homeTeam)+'</div>';
+  html+='<div class="team-name">'+teamAdminLabel(m.homeTeam,m.homeLogo)+'</div>';
   html+='<div class="score-box">';
   html+='<input data-k="homeScore" type="number" min="0" inputmode="numeric" value="'+esc(n(m.homeScore,''))+'">';
   html+='<div class="score-sep">:</div>';
   html+='<input data-k="awayScore" type="number" min="0" inputmode="numeric" value="'+esc(n(m.awayScore,''))+'">';
   html+='</div>';
-  html+='<div class="team-name away">'+esc(m.awayTeam)+'</div>';
+  html+='<div class="team-name away">'+teamAdminLabel(m.awayTeam,m.awayLogo)+'</div>';
   html+='</div>';
 
   html+='<div class="match-controls">';
