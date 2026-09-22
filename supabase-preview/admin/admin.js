@@ -32,7 +32,7 @@ async function loadLoginLogo(){
   try{
     const {data,error}=await CTD_SUPABASE
       .from('media_assets')
-      .select('object_path,alt_text,display_name')
+      .select('bucket_id,object_path,alt_text,display_name')
       .eq('asset_key','fieldflow-login')
       .eq('active',true)
       .maybeSingle();
@@ -44,14 +44,24 @@ async function loadLoginLogo(){
       return;
     }
 
-    const {data:urlData}=CTD_SUPABASE.storage
-      .from('logos')
-      .getPublicUrl(data.object_path);
+    let logoUrl='';
 
-    img.src=urlData.publicUrl;
+    if(data.bucket_id==='inline' || /^data:/i.test(data.object_path)){
+      logoUrl=data.object_path;
+    }else if(data.bucket_id==='external' || /^https?:\/\//i.test(data.object_path)){
+      logoUrl=data.object_path;
+    }else{
+      const {data:urlData}=CTD_SUPABASE.storage
+        .from(data.bucket_id||'logos')
+        .getPublicUrl(data.object_path);
+      logoUrl=urlData.publicUrl;
+    }
+
+    img.src=logoUrl;
     img.alt=data.alt_text||data.display_name||'FieldFlow';
     img.style.display='block';
-  }catch(_){
+  }catch(err){
+    console.error('Unable to load FieldFlow login logo',err);
     img.style.display='none';
   }
 }
