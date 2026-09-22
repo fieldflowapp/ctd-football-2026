@@ -116,7 +116,7 @@ function renderFinals(){
 
 function teamWithLogo(name,logo){
   return '<span class="team-with-logo">'+
-    (logo?'<img class="team-logo" src="'+esc(logo)+'" alt="">':'')+
+    (logo?'<img class="team-logo" src="'+esc(logo)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'">':'')+
     '<span>'+esc(name)+'</span>'+
   '</span>';
 }
