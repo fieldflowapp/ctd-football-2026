@@ -135,65 +135,22 @@ const ADMIN_API = (() => {
     const homePenalties=parseNullableInt(payload.homePenalties);
     const awayPenalties=parseNullableInt(payload.awayPenalties);
 
-    if(payload.status==='FINAL' && (homeScore===null || awayScore===null)){
-      throw new Error('Enter both scores before marking the match as final.');
-    }
+    const {data,error}=await db.rpc('save_match_result',{
+      p_match_id:payload.matchId,
+      p_home_score:homeScore,
+      p_away_score:awayScore,
+      p_status:statusToDb(payload.status),
+      p_home_yellow:parseNullableInt(payload.yellowHome) ?? 0,
+      p_home_red:parseNullableInt(payload.redHome) ?? 0,
+      p_away_yellow:parseNullableInt(payload.yellowAway) ?? 0,
+      p_away_red:parseNullableInt(payload.redAway) ?? 0,
+      p_home_penalties:homePenalties,
+      p_away_penalties:awayPenalties,
+      p_referee_id:refereeId || null
+    });
 
-    if(
-      payload.stage==='FINAL' &&
-      payload.status==='FINAL' &&
-      homeScore===awayScore &&
-      (
-        homePenalties===null ||
-        awayPenalties===null ||
-        homePenalties===awayPenalties
-      )
-    ){
-      throw new Error('A tied final requires penalty scores with a winner.');
-    }
-
-    const updatePayload={
-      home_score: homeScore,
-      away_score: awayScore,
-      status: statusToDb(payload.status),
-      home_yellow: parseNullableInt(payload.yellowHome) ?? 0,
-      home_red: parseNullableInt(payload.redHome) ?? 0,
-      away_yellow: parseNullableInt(payload.yellowAway) ?? 0,
-      away_red: parseNullableInt(payload.redAway) ?? 0,
-      home_penalties: homePenalties,
-      away_penalties: awayPenalties
-    };
-
-    const updateResult=await db
-      .from('matches')
-      .update(updatePayload)
-      .eq('id',payload.matchId)
-      .select('id')
-      .single();
-
-    if(updateResult.error) throw updateResult.error;
-
-    const deleteResult=await db
-      .from('match_referees')
-      .delete()
-      .eq('match_id',payload.matchId)
-      .eq('role','referee');
-
-    if(deleteResult.error) throw deleteResult.error;
-
-    if(refereeId){
-      const insertResult=await db
-        .from('match_referees')
-        .insert({
-          match_id:payload.matchId,
-          referee_id:refereeId,
-          role:'referee'
-        });
-
-      if(insertResult.error) throw insertResult.error;
-    }
-
-    return {ok:true};
+    if(error) throw error;
+    return data || {ok:true};
   }
 
   async function logout(){
