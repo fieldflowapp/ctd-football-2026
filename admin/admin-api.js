@@ -1,76 +1,176 @@
-const ADMIN_API=(()=>{
-  const urls=()=>{
-    const arr=Array.isArray(window.CTD_CONFIG.API_URLS)
-      ? window.CTD_CONFIG.API_URLS
-      : [window.CTD_CONFIG.API_URL].filter(Boolean);
-    return [...new Set(arr.map(x=>String(x||'').trim().replace(/\/+$/,'')).filter(Boolean))];
-  };
+const ADMIN_API = (() => {
+  const db = window.CTD_SUPABASE;
+  const slug = window.CTD_CONFIG.TOURNAMENT_SLUG;
 
-  function jsonp(base,params={},timeout=12000){
-    return new Promise((resolve,reject)=>{
-      const cb=`__ff_admin_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-      const s=document.createElement('script');
-      let done=false;
-      const finish=(err,data)=>{
-        if(done)return;
-        done=true;
-        clearTimeout(timer);
-        s.onerror=null;
-        if(s.parentNode)s.parentNode.removeChild(s);
-        try{delete window[cb]}catch(_){window[cb]=undefined}
-        err?reject(err):resolve(data);
-      };
-      window[cb]=payload=>{
-        if(payload&&payload.ok===false)return finish(new Error(payload.error||'API error'));
-        finish(null,payload&&Object.prototype.hasOwnProperty.call(payload,'data')?payload.data:payload);
-      };
-      s.onerror=()=>finish(new Error('Connection failed'));
-      const timer=setTimeout(()=>finish(new Error('API timeout')),timeout);
-      const qs=new URLSearchParams({...params,callback:cb,_:Date.now()});
-      s.src=`${base}?${qs.toString()}`;
-      s.async=true;
-      s.referrerPolicy='no-referrer';
-      document.head.appendChild(s);
+  const statusToDb = status => ({
+    SCHEDULED: 'scheduled',
+    LIVE: 'live',
+    FINAL: 'finished',
+    POSTPONED: 'postponed',
+    CANCELLED: 'cancelled'
+  }[String(status || '').toUpperCase()] || String(status || '').toLowerCase());
+
+  const statusToUi = status => ({
+    scheduled: 'SCHEDULED',
+    live: 'LIVE',
+    finished: 'FINAL',
+    postponed: 'POSTPONED',
+    cancelled: 'CANCELLED'
+  }[String(status || '').toLowerCase()] || String(status || '').toUpperCase());
+
+  const stageToUi = stage =>
+    String(stage || '').toLowerCase() === 'final' ? 'FINAL' : 'GROUP';
+
+  function formatTime(value){
+    if(!value) return '';
+    return new Intl.DateTimeFormat('en-GB',{
+      timeZone:'America/Santiago',
+      hour:'2-digit',
+      minute:'2-digit',
+      hour12:false
+    }).format(new Date(value));
+  }
+
+  function mapMatch(m){
+    return {
+      matchId: m.match_id,
+      tournamentId: m.tournament_id,
+      category: m.category_name,
+      field: m.venue_name || '',
+      stage: stageToUi(m.stage),
+      startTime: formatTime(m.scheduled_at),
+
+      homeTeamId: m.home_team_id,
+      homeTeam: m.home_team_name || '',
+      homeLogo: m.home_team_logo_url || '',
+      awayTeamId: m.away_team_id,
+      awayTeam: m.away_team_name || '',
+      awayLogo: m.away_team_logo_url || '',
+
+      homeScore: m.home_score,
+      awayScore: m.away_score,
+      status: statusToUi(m.status),
+
+      refereeId: m.referee_id || '',
+      refereeName: m.referee_name || '',
+
+      yellowHome: m.home_yellow || 0,
+      redHome: m.home_red || 0,
+      yellowAway: m.away_yellow || 0,
+      redAway: m.away_red || 0,
+
+      homePenalties: m.home_penalties,
+      awayPenalties: m.away_penalties,
+      notes: m.notes || '',
+      updatedAt: m.updated_at
+    };
+  }
+
+  async function login(email,password){
+    const {data,error}=await db.auth.signInWithPassword({email,password});
+    if(error) throw error;
+    return data;
+  }
+
+  async function session(){
+    const {data,error}=await db.auth.getSession();
+    if(error) throw error;
+    return data.session;
+  }
+
+  async function adminData(){
+    const current = await session();
+    if(!current?.user) throw new Error('No active admin session.');
+
+    const tournamentResult = await db
+      .from('tournaments')
+      .select('id,name')
+      .eq('slug',slug)
+      .single();
+
+    if(tournamentResult.error) throw tournamentResult.error;
+
+    const permissionResult = await db
+      .from('tournament_admins')
+      .select('role')
+      .eq('tournament_id',tournamentResult.data.id)
+      .eq('user_id',current.user.id)
+      .maybeSingle();
+
+    if(permissionResult.error) throw permissionResult.error;
+    if(!permissionResult.data) throw new Error('This user is not authorized for this tournament.');
+
+    const [matchesResult,refsResult] = await Promise.all([
+      db.from('v_match_details')
+        .select('*')
+        .eq('tournament_slug',slug)
+        .order('scheduled_at',{ascending:true})
+        .order('venue_name',{ascending:true}),
+
+      db.from('referees')
+        .select('id,name,active')
+        .eq('active',true)
+        .order('name',{ascending:true})
+    ]);
+
+    if(matchesResult.error) throw matchesResult.error;
+    if(refsResult.error) throw refsResult.error;
+
+    return {
+      role: permissionResult.data.role,
+      matches: (matchesResult.data || []).map(mapMatch),
+      referees: refsResult.data || [],
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function parseNullableInt(value){
+    if(value === '' || value === null || value === undefined) return null;
+    const n = Number(value);
+    if(!Number.isInteger(n) || n < 0) throw new Error('Scores and cards must be whole numbers ≥ 0.');
+    return n;
+  }
+
+  async function saveMatch(payload,refereeId=''){
+    const homeScore=parseNullableInt(payload.homeScore);
+    const awayScore=parseNullableInt(payload.awayScore);
+    const homePenalties=parseNullableInt(payload.homePenalties);
+    const awayPenalties=parseNullableInt(payload.awayPenalties);
+
+    const {data,error}=await db.rpc('save_match_result',{
+      p_match_id:payload.matchId,
+      p_home_score:homeScore,
+      p_away_score:awayScore,
+      p_status:statusToDb(payload.status),
+      p_home_yellow:parseNullableInt(payload.yellowHome) ?? 0,
+      p_home_red:parseNullableInt(payload.redHome) ?? 0,
+      p_away_yellow:parseNullableInt(payload.yellowAway) ?? 0,
+      p_away_red:parseNullableInt(payload.redAway) ?? 0,
+      p_home_penalties:homePenalties,
+      p_away_penalties:awayPenalties,
+      p_referee_id:refereeId || null
     });
+
+    if(error) throw error;
+    return data || {ok:true};
   }
 
-  async function call(params){
-    let last;
-    for(const base of urls()){
-      try{return await jsonp(base,params)}catch(e){last=e}
-    }
-    throw last||new Error('Apps Script unavailable');
+  async function logout(){
+    const {error}=await db.auth.signOut();
+    if(error) throw error;
+    return {ok:true};
   }
 
-  const resultParams=(p,refereeId='')=>({
-    matchId:p.matchId,
-    homeScore:p.homeScore,
-    awayScore:p.awayScore,
-    status:p.status,
-    yellowHome:p.yellowHome,
-    redHome:p.redHome,
-    yellowAway:p.yellowAway,
-    redAway:p.redAway,
-    homePenalties:p.homePenalties??'',
-    awayPenalties:p.awayPenalties??'',
-    refereeId:refereeId||''
-  });
-
-  async function saveMatch(token,p,refereeId){
-    try{
-      return await call({api:'saveMatch',token,...resultParams(p,refereeId)});
-    }catch(error){
-      if(!/unknown api route/i.test(error.message||''))throw error;
-      await call({api:'saveResult',token,...resultParams(p)});
-      await call({api:'saveReferee',token,matchId:p.matchId,refereeId:refereeId||''});
-      return {ok:true,legacyFallback:true};
-    }
+  function onAuthStateChange(callback){
+    return db.auth.onAuthStateChange(callback);
   }
 
-  return{
-    login:pin=>call({api:'adminLogin',pin}),
-    adminData:token=>call({api:'admin',token}),
+  return {
+    login,
+    session,
+    adminData,
     saveMatch,
-    logout:token=>call({api:'adminLogout',token})
+    logout,
+    onAuthStateChange
   };
 })();

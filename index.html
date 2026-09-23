@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0B1F3A">
   <title>Charles T. Darling Football Tournament 2026</title>
-  <link rel="stylesheet" href="css/styles.css?v=20260921-1305">
+  <link rel="stylesheet" href="css/styles.css?v=20260923-mobilelogos1">
 </head>
 <body>
 <header class="topbar">
@@ -15,15 +15,29 @@
   </div>
   <img id="ffLogo" class="ff-logo" alt="FieldFlow">
 </header>
+
 <main class="container">
-  <section class="hero"><h2>Football Tournament 2026</h2><p>Craighouse · Dunalastair VN · The Grange · Santiago College</p></section>
-  <div class="status-line"><span class="live-dot"></span><span>Live data</span><span>·</span><span>Updated <strong id="lastUpdated">--:--:--</strong></span><span>·</span><span>Auto refresh every 15 seconds</span></div>
+  <section class="hero">
+    <h2>Football Tournament 2026</h2>
+    <p>Craighouse · Dunalastair VN · The Grange · Santiago College</p>
+  </section>
+
+  <div class="status-line">
+    <span class="live-dot"></span>
+    <span>Live data</span>
+    <span>·</span>
+    <span>Updated <strong id="lastUpdated">--:--:--</strong></span>
+    <span>·</span>
+    <span>Supabase Realtime</span>
+  </div>
+
   <div class="tabs">
     <button class="tab active" onclick="showView('fixture',this)">Fixture</button>
     <button class="tab" onclick="showView('tables',this)">Tables</button>
     <button class="tab" onclick="showView('finals',this)">Finals</button>
     <button class="tab" onclick="showView('referees',this)">Referees</button>
   </div>
+
   <section id="filterPanel" class="filters">
     <div class="filters-grid">
       <div class="filter-group"><label>Category</label><select id="filterCategory" class="filter" onchange="applyFilters()"><option value="ALL">All categories</option></select></div>
@@ -35,11 +49,15 @@
     </div>
     <div id="resultCount" style="margin-top:10px;color:#667085;font-size:12px"></div>
   </section>
+
   <div id="content"><div class="empty">Loading tournament...</div></div>
 </main>
+
 <footer class="footer">© 2026 Craighouse School · Powered by FieldFlow</footer>
-<script src="js/config.js?v=20260921-1305"></script>
-<script src="js/api.js?v=20260921-1305"></script>
-<script src="js/app.js?v=20260921-1305"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js?v=20260922-supabase"></script>
+<script src="js/api.js?v=20260922-logos3"></script>
+<script src="js/app.js?v=20260923-mobilelogos1"></script>
 </body>
 </html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Print · CTD Football 2026</title>
+  <link rel="stylesheet" href="../css/styles.css?v=20260922-supabase">
+  <style>
+    .print-toolbar{display:flex;justify-content:flex-end;margin-bottom:16px}
+    .print-page{margin-bottom:28px}
+    @media print{
+      .topbar,.print-toolbar,.footer{display:none!important}
+      .container{max-width:none;padding:0}
+      .print-page{break-before:page}
+      .print-page:first-of-type{break-before:auto}
+      .table-wrap{overflow:visible}
+    }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img id="schoolLogo" alt="Craighouse">
+    <div><h1>CTD Football 2026 · Print</h1><p>Match sheets</p></div>
+  </div>
+  <img id="ffLogo" class="ff-logo" alt="FieldFlow">
+</header>
+
+<main class="container">
+  <div class="print-toolbar">
+    <button class="btn btn-light" onclick="window.print()">Print</button>
+  </div>
+  <div id="app"><div class="empty">Loading…</div></div>
+</main>
+
+<footer class="footer">© 2026 Craighouse School · Powered by FieldFlow</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js?v=20260922-supabase"></script>
+<script src="../js/api.js?v=20260922-supabase"></script>
+<script>
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+
+function tableFor(field,matches){
+  const category=field==='P1'?'Intermedia':'Senior';
+  const rows=matches.filter(m=>m.field===field);
+
+  return `
+    <section class="print-page">
+      <div class="section-title"><div><h2>${field} · ${category}</h2><p>Charles T. Darling Football Tournament 2026</p></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Time</th><th class="left">Home</th><th class="left">Away</th><th class="left">Referee</th><th>Score</th></tr></thead>
+          <tbody>
+            ${rows.map(m=>`
+              <tr>
+                <td>${esc(m.startTime)}</td>
+                <td class="left"><strong>${esc(m.homeTeam)}</strong></td>
+                <td class="left"><strong>${esc(m.awayTeam)}</strong></td>
+                <td class="left">${esc(m.refereeName||'')}</td>
+                <td style="height:48px;min-width:100px"></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  schoolLogo.src=CTD_CONFIG.SCHOOL_LOGO;
+  ffLogo.src=CTD_CONFIG.FIELDFLOW_LOGO;
+
+  try{
+    const data=await CTD_API.getPublic();
+    app.innerHTML=['P1','P2'].map(f=>tableFor(f,data.matches||[])).join('');
+  }catch(error){
+    app.innerHTML='<div class="error">'+esc(error.message||error)+'</div>';
+  }
+});
+</script>
+</body>
+</html>

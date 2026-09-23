@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Referees · CTD Football 2026</title>
+  <link rel="stylesheet" href="../css/styles.css?v=20260922-supabase">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img id="schoolLogo" alt="Craighouse">
+    <div><h1>CTD Football 2026 · Referees</h1><p>Assigned matches</p></div>
+  </div>
+  <img id="ffLogo" class="ff-logo" alt="FieldFlow">
+</header>
+
+<main class="container">
+  <div id="app"><div class="empty">Loading…</div></div>
+</main>
+
+<footer class="footer">© 2026 Craighouse School · Powered by FieldFlow</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js?v=20260922-supabase"></script>
+<script src="../js/api.js?v=20260922-supabase"></script>
+<script>
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+
+function card(m){
+  return `
+    <article class="match-card">
+      <div class="meta">
+        <span class="badge">${esc(m.startTime)}</span>
+        <span class="badge">${esc(m.field)}</span>
+        <span class="badge">${esc(m.category)}</span>
+      </div>
+      <div class="match-grid">
+        <div class="team">${esc(m.homeTeam)}</div>
+        <div class="score">VS</div>
+        <div class="team">${esc(m.awayTeam)}</div>
+      </div>
+    </article>
+  `;
+}
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  schoolLogo.src=CTD_CONFIG.SCHOOL_LOGO;
+  ffLogo.src=CTD_CONFIG.FIELDFLOW_LOGO;
+
+  try{
+    const data=await CTD_API.getPublic();
+    const assigned=(data.matches||[]).filter(m=>m.refereeName);
+    const names=[...new Set(assigned.map(m=>m.refereeName))].sort();
+
+    app.innerHTML=names.length
+      ? names.map(name=>{
+          const matches=assigned.filter(m=>m.refereeName===name);
+          return `
+            <section>
+              <div class="section-title"><div><h2>${esc(name)}</h2><p>${matches.length} assigned match${matches.length===1?'':'es'}</p></div></div>
+              ${matches.map(card).join('')}
+            </section>
+          `;
+        }).join('')
+      : '<div class="empty">No referee assignments yet.</div>';
+  }catch(error){
+    app.innerHTML='<div class="error">'+esc(error.message||error)+'</div>';
+  }
+});
+</script>
+</body>
+</html>

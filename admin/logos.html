@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Logo Library · FieldFlow</title>
+  <link rel="stylesheet" href="admin.css?v=20260922-logos">
+  <style>
+    .logos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:18px}
+    .logo-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px}
+    .logo-card img{width:100%;height:130px;object-fit:contain;background:#fff;border-radius:12px}
+    .logo-card h3{margin:10px 0 4px;font-size:15px}.logo-card p{margin:0;color:var(--muted);font-size:11px;word-break:break-all}
+    .upload-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+    .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.upload-grid .full{grid-column:1/-1}
+    .upload-card input,.upload-card select{width:100%;border:1px solid var(--border);border-radius:12px;padding:11px;background:#fff}
+    .upload-card label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+    @media(max-width:700px){.upload-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img id="schoolLogo" alt="Craighouse">
+    <div><h1>FieldFlow Logo Library</h1><p>Supabase Storage</p></div>
+  </div>
+  <div class="top-actions"><a class="public-link" href="./">Admin</a></div>
+</header>
+
+<main class="container">
+  <section class="upload-card">
+    <div class="toolbar-title">
+      <h2>Upload logo</h2>
+      <p>Upload once. Every FieldFlow tournament can reuse the same asset.</p>
+    </div>
+    <form id="logoForm" class="upload-grid">
+      <div><label>Asset key</label><input id="assetKey" required placeholder="fieldflow-login"></div>
+      <div><label>Name</label><input id="displayName" required placeholder="FieldFlow Login Logo"></div>
+      <div><label>Type</label>
+        <select id="kind">
+          <option value="fieldflow_logo">FieldFlow logo</option>
+          <option value="school_logo">School logo</option>
+          <option value="tournament_logo">Tournament logo</option>
+          <option value="sponsor_logo">Sponsor logo</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div><label>Image file</label><input id="file" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" required></div>
+      <div class="full"><label>Alt text</label><input id="altText" placeholder="FieldFlow Sports Management Systems"></div>
+      <div class="full"><button class="btn primary" type="submit">Upload to Supabase</button></div>
+    </form>
+    <div id="message" class="form-error"></div>
+  </section>
+
+  <section>
+    <div class="section-title"><div><h2>Logo Library</h2><p id="count">Loading…</p></div></div>
+    <div id="logos" class="logos-grid"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js?v=20260922-supabase"></script>
+<script>
+const db=window.CTD_SUPABASE;
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+
+async function requireSession(){
+  const {data:{session}}=await db.auth.getSession();
+  if(!session) location.href='./';
+}
+
+function publicUrl(asset){
+  if(!asset) return '';
+  const path=asset.object_path||'';
+  if(asset.bucket_id==='inline' || /^data:/i.test(path)) return path;
+  if(asset.bucket_id==='external' || /^https?:\/\//i.test(path)) return path;
+  return db.storage.from(asset.bucket_id||'logos').getPublicUrl(path).data.publicUrl;
+}
+
+async function loadAssets(){
+  const {data,error}=await db.from('media_assets').select('*').eq('active',true).order('display_name');
+  if(error){ $('message').textContent=error.message; return; }
+  $('count').textContent=data.length+' asset'+(data.length===1?'':'s');
+  $('logos').innerHTML=data.map(a=>`
+    <article class="logo-card">
+      <img src="${esc(publicUrl(a))}" alt="${esc(a.alt_text||a.display_name)}" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'">
+      <h3>${esc(a.display_name)}</h3>
+      <p><strong>${esc(a.asset_key)}</strong></p>
+      <p>${esc(a.kind)} · ${esc(a.object_path)}</p>
+    </article>`
+  ).join('');
+}
+
+$('logoForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  $('message').textContent='Uploading…';
+
+  const file=$('file').files[0];
+  const assetKey=$('assetKey').value.trim().toLowerCase().replace(/[^a-z0-9-_]+/g,'-');
+  const displayName=$('displayName').value.trim();
+  const kind=$('kind').value;
+  const altText=$('altText').value.trim();
+
+  if(!file||!assetKey||!displayName)return;
+
+  const ext=(file.name.split('.').pop()||'png').toLowerCase();
+  const objectPath=kind+'/'+assetKey+'-'+Date.now()+'.'+ext;
+
+  const upload=await db.storage.from('logos').upload(objectPath,file,{
+    cacheControl:'31536000',
+    contentType:file.type,
+    upsert:false
+  });
+  if(upload.error){ $('message').textContent=upload.error.message; return; }
+
+  const {data:existing}=await db.from('media_assets').select('id').eq('asset_key',assetKey).maybeSingle();
+  let result;
+  const payload={
+    asset_key:assetKey,
+    display_name:displayName,
+    kind,
+    bucket_id:'logos',
+    object_path:objectPath,
+    alt_text:altText||displayName,
+    mime_type:file.type,
+    active:true
+  };
+
+  if(existing?.id){
+    result=await db.from('media_assets').update(payload).eq('id',existing.id);
+  }else{
+    result=await db.from('media_assets').insert(payload);
+  }
+
+  if(result.error){ $('message').textContent=result.error.message; return; }
+
+  $('message').textContent='Logo uploaded ✓';
+  $('logoForm').reset();
+  await loadAssets();
+});
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  $('schoolLogo').src=CTD_CONFIG.SCHOOL_LOGO;
+  await requireSession();
+  await loadAssets();
+});
+</script>
+</body>
+</html>
