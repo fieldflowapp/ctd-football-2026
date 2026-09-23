@@ -3,6 +3,7 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const safeScore=v=>{if(v===null||v===undefined||v==='')return 0;const n=Number(v);return Number.isFinite(n)?n:0};
 const unique=a=>[...new Set(a.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
+const displayCategory=v=>v==='Intermedia'?'Intermediate':v;
 
 async function loadTournament(silent=false){
   try{
@@ -21,7 +22,7 @@ async function loadTournament(silent=false){
 
 function fillSelect(id,values,label){
   const select=$(id), current=select.value||'ALL';
-  select.innerHTML=`<option value="ALL">${esc(label)}</option>`+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  select.innerHTML=`<option value="ALL">${esc(label)}</option>`+values.map(v=>`<option value="${esc(v)}">${esc(id==='filterCategory'?displayCategory(v):v)}</option>`).join('');
   if([...select.options].some(o=>o.value===current))select.value=current;
 }
 
@@ -85,7 +86,7 @@ function renderFixture(){
   $('content').innerHTML=categories.map(cat=>`
     <section>
       <div class="section-title">
-        <div><h2>${esc(cat)}</h2><p>${esc(CTD_CONFIG.CATEGORY_FIELD[cat]||'')}</p></div>
+        <div><h2>${esc(displayCategory(cat))}</h2><p>${esc(CTD_CONFIG.CATEGORY_FIELD[cat]||'')}</p></div>
       </div>
       ${FILTERED.filter(m=>m.category===cat).map(m=>matchCard(m)).join('')}
     </section>
@@ -96,7 +97,7 @@ function renderTables(){
   $('content').innerHTML=CTD_CONFIG.CATEGORIES.map(cat=>`
     <section>
       <div class="section-title">
-        <div><h2>${esc(cat)}</h2><p>Top 2 qualify for the Final.</p></div>
+        <div><h2>${esc(displayCategory(cat))}</h2><p>Top 2 qualify for the Final.</p></div>
       </div>
       ${standingsTable(DATA.standings?.[cat]||[])}
     </section>
@@ -107,7 +108,7 @@ function renderFinals(){
   $('content').innerHTML=(DATA.finals||[]).map(item=>`
     <section>
       <div class="section-title">
-        <div><h2>${esc(item.category)} Final</h2><p>${esc(CTD_CONFIG.CATEGORY_FIELD[item.category]||'')} · 13:40</p></div>
+        <div><h2>${esc(displayCategory(item.category))} Final</h2><p>${esc(CTD_CONFIG.CATEGORY_FIELD[item.category]||'')} · 13:40</p></div>
       </div>
       ${item.match?matchCard(item.match,true):'<div class="empty">Final pending.</div>'}
     </section>
@@ -199,7 +200,7 @@ function standingsTable(rows){
       <table>
         <thead>
           <tr>
-            <th>Pos.</th><th class="left">Team</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th>
+            <th>Pos.</th><th class="left">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
           </tr>
         </thead>
         <tbody>
