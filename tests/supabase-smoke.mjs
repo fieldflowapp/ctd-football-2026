@@ -1,3 +1,4 @@
+// Production post-merge validation
 const url = 'https://qhsvvlcgwdmxxappplzh.supabase.co';
 const key = 'sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
 const slug = 'ctd-football-2026';
