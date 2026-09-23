@@ -42,7 +42,7 @@
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 
 function tableFor(field,matches){
-  const category=field==='P1'?'Intermedia':'Senior';
+  const category=field==='P1'?'Intermediate':'Senior';
   const rows=matches.filter(m=>m.field===field);
 
   return `
