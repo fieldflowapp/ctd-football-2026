@@ -33,10 +33,10 @@
 
   <div class="tabs">
     <button class="tab active" onclick="showView('fixture',this)">Fixture</button>
-    <button class="tab" onclick="showView('tables',this)">Tables</button>
+    <button class="tab" onclick="showView('tables',this)">Standings</button>
     <button class="tab" onclick="showView('finals',this)">Finals</button>
     <button class="tab" onclick="showView('referees',this)">Referees</button>
-    <button class="tab" onclick="window.open('bases.html','_blank','noopener')">Bases</button>
+    <button class="tab" onclick="window.open('bases.html','_blank','noopener')">Rules</button>
   </div>
 
   <section id="filterPanel" class="filters">
@@ -45,7 +45,7 @@
       <div class="filter-group"><label>School</label><select id="filterSchool" class="filter" onchange="applyFilters()"><option value="ALL">All schools</option></select></div>
       <div class="filter-group"><label>Field</label><select id="filterField" class="filter" onchange="applyFilters()"><option value="ALL">All fields</option></select></div>
       <div class="filter-group"><label>Referee</label><select id="filterReferee" class="filter" onchange="applyFilters()"><option value="ALL">All referees</option></select></div>
-      <div class="filter-group"><label>Status</label><select id="filterStatus" class="filter" onchange="applyFilters()"><option value="ALL">All status</option><option value="SCHEDULED">Scheduled</option><option value="LIVE">Live</option><option value="FINAL">Final</option></select></div>
+      <div class="filter-group"><label>Status</label><select id="filterStatus" class="filter" onchange="applyFilters()"><option value="ALL">All statuses</option><option value="SCHEDULED">Scheduled</option><option value="LIVE">Live</option><option value="FINAL">Final</option></select></div>
       <button class="btn btn-light" onclick="clearFilters()">Clear</button>
     </div>
     <div id="resultCount" style="margin-top:10px;color:#667085;font-size:12px"></div>
@@ -59,6 +59,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js?v=20260922-supabase"></script>
 <script src="js/api.js?v=20260922-logos3"></script>
-<script src="js/app.js?v=20260923-mobilelogos1"></script>
+<script src="js/app.js?v=20260923-english1"></script>
 </body>
 </html>
