@@ -1,1 +1,1 @@
-build exact logo
+build exact logo v2
