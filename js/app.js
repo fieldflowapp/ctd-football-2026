@@ -121,6 +121,18 @@ function teamWithLogo(name,logo){
   '</span>';
 }
 
+function teamHeroBlock(name,logo,side){
+  const safeName=esc(name||'');
+  const image=logo
+    ? '<img class="team-logo-hero" src="'+esc(logo)+'" alt="'+safeName+' logo" loading="lazy" onerror="this.style.visibility=\'hidden\'">'
+    : '<span class="team-logo-hero team-logo-placeholder" aria-hidden="true"></span>';
+
+  return '<div class="team-side '+esc(side||'')+'">'+
+    image+
+    '<div class="team-name-hero">'+safeName+'</div>'+
+  '</div>';
+}
+
 function renderReferees(){
   const assigned=(DATA.matches||[]).filter(m=>m.refereeName);
   const refs=unique(assigned.map(m=>m.refereeName));
@@ -167,13 +179,13 @@ function matchCard(m,isFinal=false){
         <span class="badge ${String(m.status||'').toLowerCase()}">${esc(m.status)}</span>
         ${m.refereeName?`<span class="badge">Ref: ${esc(m.refereeName)}</span>`:''}
       </div>
-      <div class="match-grid">
-        <div class="team">${teamWithLogo(m.homeTeam,m.homeLogo)}</div>
-        <div>
+      <div class="match-grid match-grid-hero">
+        ${teamHeroBlock(m.homeTeam,m.homeLogo,'home')}
+        <div class="score-block">
           <div class="score">${hs} : ${as}</div>
           ${penalties}
         </div>
-        <div class="team">${teamWithLogo(m.awayTeam,m.awayLogo)}</div>
+        ${teamHeroBlock(m.awayTeam,m.awayLogo,'away')}
       </div>
     </article>
   `;
