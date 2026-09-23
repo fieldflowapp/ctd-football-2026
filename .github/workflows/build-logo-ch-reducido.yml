@@ -3,7 +3,7 @@ name: Build reduced Craighouse logo
 on:
   push:
     paths:
-      - 'assets/logo-ch-reducido-parts/**'
+      - 'assets/logo-ch-reducido-exact/**'
 
 permissions:
   contents: write
@@ -18,23 +18,23 @@ jobs:
         id: parts
         shell: bash
         run: |
-          count=$(find assets/logo-ch-reducido-parts -type f -name 'part-*' | wc -l)
+          count=$(find assets/logo-ch-reducido-exact -type f -name 'part-*' | wc -l)
           echo "count=$count" >> "$GITHUB_OUTPUT"
-          if [ "$count" -ne 7 ]; then
-            echo "Expected 7 parts, found $count. Nothing to build yet."
+          if [ "$count" -ne 8 ]; then
+            echo "Expected 8 parts, found $count. Nothing to build yet."
             exit 0
           fi
       - name: Decode exact logo
-        if: steps.parts.outputs.count == '7'
+        if: steps.parts.outputs.count == '8'
         shell: bash
         run: |
-          cat assets/logo-ch-reducido-parts/part-* > /tmp/logo.b64
+          cat assets/logo-ch-reducido-exact/part-* > /tmp/logo.b64
           base64 -d /tmp/logo.b64 > assets/logo-ch-reducido.webp
           test "$(stat -c%s assets/logo-ch-reducido.webp)" = "38018"
           sha256sum assets/logo-ch-reducido.webp | grep -q '^6c65c9174f4e9ccfd2266651c468d63c49ad395cca4ed4307726ada443b2715a'
           file assets/logo-ch-reducido.webp
       - name: Commit verified logo
-        if: steps.parts.outputs.count == '7'
+        if: steps.parts.outputs.count == '8'
         shell: bash
         run: |
           git config user.name "fieldflowapp"
