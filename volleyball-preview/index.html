@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0B1F3A">
+<title>CTD Volleyball Damas 2026 · Preview</title>
+<style>
+:root{--navy:#0B1F3A;--blue:#0B5FFF;--cyan:#12C8FF;--green:#18D39E;--light:#F4F7FB;--line:#DCE3ED;--muted:#667085;--white:#fff}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--light);color:#172033}
+.topbar{background:var(--navy);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:12px}.brand img{width:48px;height:48px;object-fit:contain;background:#fff;border-radius:10px;padding:4px}.brand h1{font-size:18px;margin:0}.brand p{margin:3px 0 0;color:#cbd5e1;font-size:12px}
+.ff{font-weight:900;letter-spacing:.2px}.container{max-width:1080px;margin:0 auto;padding:22px 14px 48px}.hero{background:linear-gradient(135deg,#0B1F3A,#0B5FFF);color:#fff;border-radius:24px;padding:26px;margin-bottom:16px;box-shadow:0 18px 45px rgba(11,31,58,.16)}
+.hero h2{font-size:30px;margin:0 0 8px}.hero p{margin:0;color:#e7efff}.preview-note{margin-top:14px;display:inline-block;background:#fff2;border:1px solid #fff5;border-radius:999px;padding:7px 11px;font-size:12px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.tab{border:0;background:#fff;color:var(--navy);font-weight:800;padding:10px 14px;border-radius:999px;cursor:pointer;box-shadow:0 3px 12px rgba(11,31,58,.06)}.tab.active{background:var(--blue);color:#fff}
+.view{display:none}.view.active{display:block}.section{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;margin:14px 0;box-shadow:0 10px 30px rgba(11,31,58,.05)}.section h3{margin:0 0 12px;color:var(--navy)}
+.match{border:1px solid var(--line);border-radius:18px;padding:14px;margin:10px 0}.meta{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.badge{background:#EEF3FA;color:var(--navy);border-radius:999px;padding:6px 9px;font-size:12px;font-weight:800}.match-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}
+.team{display:flex;align-items:center;gap:10px;font-weight:800}.team.away{justify-content:flex-end;text-align:right}.team img{width:42px;height:42px;object-fit:contain;border-radius:8px;background:#fff}.score{font-size:22px;font-weight:900;color:var(--navy)}.sets{font-size:11px;color:var(--muted);margin-top:4px;text-align:center}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:670px}th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:center}th{font-size:12px;color:#475467}.left{text-align:left}.team-cell{display:flex;align-items:center;gap:8px}.team-cell img{width:28px;height:28px;object-fit:contain}
+.qualify{background:#F0FFF9}.final-card{border:2px solid var(--blue);background:#F8FBFF}.rules h4{color:var(--blue);margin:18px 0 8px}.rules li,.rules p{line-height:1.55}.schedule{display:grid;gap:8px}.slot{display:grid;grid-template-columns:90px repeat(3,1fr);gap:8px;align-items:stretch}.slot>div{padding:10px;border:1px solid var(--line);background:#fff;border-radius:12px}.slot .time{font-weight:900;background:#EEF3FA;color:var(--navy)}.small{font-size:12px;color:var(--muted)}.footer{text-align:center;padding:26px;color:var(--muted);font-size:12px}
+@media(max-width:720px){.hero h2{font-size:24px}.slot{grid-template-columns:1fr}.slot .time{margin-top:10px}.match-grid{grid-template-columns:1fr auto 1fr}.team{flex-direction:column;text-align:center}.team.away{flex-direction:column-reverse;text-align:center}.team img{width:38px;height:38px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img src="https://qhsvvlcgwdmxxappplzh.supabase.co/storage/v1/object/public/logos/schools/craighouse-school.jpg" alt="Craighouse">
+    <div><h1>Charles T. Darling Volleyball Damas 2026</h1><p>Official Tournament Center</p></div>
+  </div>
+  <div class="ff">FieldFlow</div>
+</header>
+
+<main class="container">
+<section class="hero">
+  <h2>Volleyball Tournament 2026</h2>
+  <p>Craighouse · Santiago College · The Grange · Dunalastair Valle Norte</p>
+  <span class="preview-note">PREVIEW V1 · Diseño y lógica por aprobar</span>
+</section>
+
+<div class="tabs">
+  <button class="tab active" data-view="fixture">Fixture</button>
+  <button class="tab" data-view="tables">Tablas</button>
+  <button class="tab" data-view="finals">Finales</button>
+  <button class="tab" data-view="bases">Bases</button>
+</div>
+
+<section id="fixture" class="view active">
+  <div class="section">
+    <h3>Fixture oficial</h3>
+    <div class="small">3 canchas en paralelo · fase clasificatoria todos contra todos</div>
+    <div id="fixtureList"></div>
+  </div>
+</section>
+
+<section id="tables" class="view">
+  <div class="section">
+    <h3>Intermedia</h3>
+    <div class="small">Top 2 clasifican a la Gran Final.</div>
+    <div class="table-wrap"><table><thead><tr><th>Pos</th><th class="left">Equipo</th><th>PJ</th><th>PG</th><th>PP</th><th>SF</th><th>SC</th><th>DS</th><th>PF</th><th>PC</th><th>DP</th><th>Pts</th></tr></thead><tbody id="tableIntermedia"></tbody></table></div>
+  </div>
+  <div class="section">
+    <h3>Senior</h3>
+    <div class="small">Top 2 clasifican a la Gran Final.</div>
+    <div class="table-wrap"><table><thead><tr><th>Pos</th><th class="left">Equipo</th><th>PJ</th><th>PG</th><th>PP</th><th>SF</th><th>SC</th><th>DS</th><th>PF</th><th>PC</th><th>DP</th><th>Pts</th></tr></thead><tbody id="tableSenior"></tbody></table></div>
+  </div>
+</section>
+
+<section id="finals" class="view">
+  <div class="section">
+    <h3>Fase Final · 13:15–14:15</h3>
+    <article class="match final-card"><div class="meta"><span class="badge">Cancha 1</span><span class="badge">INTERMEDIA</span><span class="badge">FINAL</span></div><div class="match-grid"><div class="team"><span>1° Intermedia</span></div><div class="score">– : –</div><div class="team away"><span>2° Intermedia</span></div></div></article>
+    <article class="match final-card"><div class="meta"><span class="badge">Cancha 3</span><span class="badge">SENIOR</span><span class="badge">FINAL</span></div><div class="match-grid"><div class="team"><span>1° Senior</span></div><div class="score">– : –</div><div class="team away"><span>2° Senior</span></div></div></article>
+  </div>
+</section>
+
+<section id="bases" class="view rules">
+  <div class="section">
+    <h3>Bases Oficiales · Charles T. Darling Volleyball Damas 2026</h3>
+    <p>El torneo busca fomentar la sana competencia, el trabajo en equipo y los valores propios del deporte entre Craighouse, Santiago College, The Grange y Dunalastair Valle Norte.</p>
+    <h4>Lugar</h4>
+    <p>Gimnasio del Colegio Craighouse, con 3 canchas habilitadas en paralelo y graderías para visitas y apoderados.</p>
+    <h4>Formato</h4>
+    <ul>
+      <li>Fase clasificatoria: todos contra todos; cada colegio disputa 3 partidos por categoría.</li>
+      <li>Partido ganado: 3 puntos.</li>
+      <li>Partido perdido: 1 punto.</li>
+      <li>No presentación (walkover): 0 puntos.</li>
+      <li>1° y 2° lugar disputan la Gran Final.</li>
+    </ul>
+    <h4>Desempates de tabla</h4>
+    <ol>
+      <li>Mayor cantidad de puntos.</li>
+      <li>Mayor diferencia de sets.</li>
+      <li>Mayor diferencia de puntos.</li>
+      <li>Resultado entre los equipos empatados.</li>
+    </ol>
+    <h4>Reglas de partido</h4>
+    <ul>
+      <li>Al mejor de 3 sets.</li>
+      <li>Set 1 y 2 a 21 puntos.</li>
+      <li>3er set / tie-break a 15 puntos.</li>
+      <li><strong>En cualquier set, si se llega empatado al punto objetivo, se continúa hasta obtener 2 puntos de diferencia.</strong></li>
+      <li>6 titulares + máximo 6 suplentes (12 jugadoras).</li>
+      <li>Una jugadora no puede participar en Intermedia y Senior.</li>
+      <li>Uniforme oficial del colegio con numeración visible.</li>
+      <li>Si el balón toca el techo en el primer o segundo toque y sigue jugable en el mismo lado, la jugada continúa.</li>
+      <li>Se exige conducta deportiva y Fair Play.</li>
+    </ul>
+    <h4>Premiación</h4>
+    <ul><li>1° lugar: Copa y medallas de oro.</li><li>2° lugar: Medallas de plata.</li></ul>
+  </div>
+  <div class="section">
+    <h3>Programación</h3>
+    <div class="schedule">
+      <div class="slot"><div class="time">09:00–10:00</div><div>Cancha 1 · Intermedia<br><strong>Craighouse vs Dunalastair</strong></div><div>Cancha 2 · Intermedia<br><strong>The Grange vs Santiago College</strong></div><div>Cancha 3 · Senior<br><strong>Craighouse vs Dunalastair</strong></div></div>
+      <div class="slot"><div class="time">10:00–11:00</div><div>Cancha 1 · Intermedia<br><strong>Craighouse vs The Grange</strong></div><div>Cancha 2 · Senior<br><strong>The Grange vs Santiago College</strong></div><div>Cancha 3 · Senior<br><strong>Dunalastair vs Santiago College</strong></div></div>
+      <div class="slot"><div class="time">11:00–12:00</div><div>Cancha 1 · Intermedia<br><strong>Dunalastair vs Santiago College</strong></div><div>Cancha 2 · Intermedia<br><strong>Craighouse vs Santiago College</strong></div><div>Cancha 3 · Senior<br><strong>Craighouse vs The Grange</strong></div></div>
+      <div class="slot"><div class="time">12:00–13:00</div><div>Cancha 1 · Intermedia<br><strong>Dunalastair vs The Grange</strong></div><div>Cancha 2 · Senior<br><strong>Dunalastair vs The Grange</strong></div><div>Cancha 3 · Senior<br><strong>Craighouse vs Santiago College</strong></div></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">© 2026 Craighouse School · Powered by FieldFlow · Preview V1</footer>
+
+<script>
+const LOGOS={
+  "Craighouse":"https://qhsvvlcgwdmxxappplzh.supabase.co/storage/v1/object/public/logos/schools/craighouse-school.jpg",
+  "Dunalastair":"https://qhsvvlcgwdmxxappplzh.supabase.co/storage/v1/object/public/logos/schools/dunalastair-valle-norte.jpg",
+  "The Grange":"https://qhsvvlcgwdmxxappplzh.supabase.co/storage/v1/object/public/logos/schools/the-grange-school.jpg",
+  "Santiago College":"https://qhsvvlcgwdmxxappplzh.supabase.co/storage/v1/object/public/logos/schools/santiago-college.jpg"
+};
+const matches=[
+["09:00","Cancha 1","Intermedia","Craighouse","Dunalastair"],
+["09:00","Cancha 2","Intermedia","The Grange","Santiago College"],
+["09:00","Cancha 3","Senior","Craighouse","Dunalastair"],
+["10:00","Cancha 1","Intermedia","Craighouse","The Grange"],
+["10:00","Cancha 2","Senior","The Grange","Santiago College"],
+["10:00","Cancha 3","Senior","Dunalastair","Santiago College"],
+["11:00","Cancha 1","Intermedia","Dunalastair","Santiago College"],
+["11:00","Cancha 2","Intermedia","Craighouse","Santiago College"],
+["11:00","Cancha 3","Senior","Craighouse","The Grange"],
+["12:00","Cancha 1","Intermedia","Dunalastair","The Grange"],
+["12:00","Cancha 2","Senior","Dunalastair","The Grange"],
+["12:00","Cancha 3","Senior","Craighouse","Santiago College"]
+];
+const fixture=document.getElementById("fixtureList");
+fixture.innerHTML=matches.map(m=>`<article class="match"><div class="meta"><span class="badge">${m[0]}</span><span class="badge">${m[1]}</span><span class="badge">${m[2]}</span><span class="badge">SCHEDULED</span></div><div class="match-grid"><div class="team"><img src="${LOGOS[m[3]]}" alt=""><span>${m[3]}</span></div><div><div class="score">– : –</div><div class="sets">Best of 3</div></div><div class="team away"><span>${m[4]}</span><img src="${LOGOS[m[4]]}" alt=""></div></div></article>`).join("");
+const teams=["Craighouse","Dunalastair","The Grange","Santiago College"];
+function blankRows(){
+ return teams.map((t,i)=>`<tr class="${i<2?'qualify':''}"><td>${i+1}</td><td class="left"><span class="team-cell"><img src="${LOGOS[t]}" alt=""><strong>${t}</strong></span></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td><strong>0</strong></td></tr>`).join("");
+document.getElementById("tableIntermedia").innerHTML=blankRows();
+document.getElementById("tableSenior").innerHTML=blankRows();
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+ document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+ document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+ b.classList.add("active");document.getElementById(b.dataset.view).classList.add("active");
+}));
+</script>
+</body>
+</html>
