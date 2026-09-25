@@ -5,9 +5,38 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0B1F3A">
   <title>Charles T. Darling Football Tournament 2026</title>
-  <link rel="stylesheet" href="css/styles.css?v=20260923-mobilelogos1">
+  <link rel="stylesheet" href="css/styles.css?v=20260925-introvideo1">
 </head>
 <body>
+<div id="ffIntroOverlay" class="ff-intro-overlay" aria-label="FieldFlow intro">
+  <video id="ffIntroVideo" autoplay muted playsinline preload="auto">
+    <source src="/ctd-football-2026/absch-football-2026/assets/fieldflow-intro.mp4" type="video/mp4">
+  </video>
+</div>
+<script>
+(function(){
+  const overlay=document.getElementById('ffIntroOverlay');
+  const video=document.getElementById('ffIntroVideo');
+  video.playbackRate=1.5;
+  video.defaultPlaybackRate=1.5;
+
+  let closed=false;
+
+  function closeIntro(){
+    if(closed)return;
+    closed=true;
+    overlay.classList.add('hide');
+    setTimeout(()=>overlay.remove(),700);
+  }
+
+  video.addEventListener('ended',closeIntro,{once:true});
+  video.addEventListener('error',closeIntro,{once:true});
+  setTimeout(closeIntro,10000);
+
+  const p=video.play();
+  if(p&&typeof p.catch==='function')p.catch(closeIntro);
+})();
+</script>
 <header class="topbar">
   <div class="brand">
     <img id="schoolLogo" alt="Craighouse">
