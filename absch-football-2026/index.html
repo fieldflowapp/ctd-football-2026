@@ -27,9 +27,16 @@
 .bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(980px,100%);display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid var(--line);padding:6px 7px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -5px 16px #0001;z-index:20}.bottom button{border:0;background:transparent;color:var(--muted);font-size:9px;font-weight:900;padding:7px 2px}.bottom button.active{color:var(--red)}
 @media(min-width:721px){.head{grid-template-columns:90px 1fr 90px}.logo{width:84px;height:84px}.title h1{font-size:26px}.fixture-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.groups{grid-template-columns:repeat(3,1fr)}}
 .site-footer{margin:14px auto 0;padding:14px 12px 8px;text-align:center;color:#64748b;font-size:10px;font-weight:700;border-top:1px solid #d9e2ef}.site-footer b{color:#0b2d5c}
+.splash-query-test{position:fixed;inset:0;z-index:99999;background:#f4f7fb;display:grid;place-items:center;opacity:1;visibility:visible;transition:opacity .65s ease,visibility .65s ease}.splash-query-test.hide{opacity:0;visibility:hidden}.splash-query-test-inner{text-align:center}.splash-query-test img{width:min(70vw,360px);max-height:65vh;object-fit:contain;animation:splashQueryPulse 1.35s ease-in-out infinite alternate}.splash-query-test small{display:block;margin-top:14px;color:#64748b;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}@keyframes splashQueryPulse{from{transform:scale(.96);opacity:.78}to{transform:scale(1.04);opacity:1}}
 </style>
 </head>
 <body>
+<script>
+const SPLASH_TEST=new URLSearchParams(location.search).get('splash')==='1';
+if(SPLASH_TEST){
+  document.write('<div id="splashQueryTest" class="splash-query-test" aria-hidden="true"><div class="splash-query-test-inner"><img src="https://fieldflowapp.github.io/ctd-football-2026/assets/fieldflow-login.webp" alt="FieldFlow"><small>Loading tournament</small></div></div>');
+}
+</script>
 <div class="ff-watermark" aria-hidden="true"><img src="https://fieldflowapp.github.io/ctd-football-2026/assets/fieldflow-login.webp" alt=""></div>
 <div class="app"><div id="root"><div class="loading">Loading tournament…</div></div><footer class="site-footer">© 2026 Craighouse School · Powered by <b>FieldFlow</b></footer></div>
 <nav class="bottom"><button class="active" data-tab="fixture">⚽<br>Fixture</button><button data-tab="standings">▦<br>Standings</button><button data-tab="groups">👥<br>Groups</button><button data-tab="rules">📋<br>Rules</button></nav>
@@ -38,11 +45,14 @@ const API='https://qhsvvlcgwdmxxappplzh.supabase.co/rest/v1/';
 const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc3Z2bGNnd2RteHhhcHBwbHpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTU5NzQsImV4cCI6MjEwNTY3MTk3NH0.1vOwqwZGPXr6ExIdaZHG4C1JdL_p57ZslvfigtBeHPc';
 const H={apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json'};
 let D={entries:[],matches:[],settings:null},tab='fixture',comp='7th|A',fixtureSchool='';
+let splashDataReady=false,splashMinReady=!SPLASH_TEST;
+function closeSplashQuery(){if(!SPLASH_TEST||!splashDataReady||!splashMinReady)return;const el=document.getElementById('splashQueryTest');if(el){el.classList.add('hide');setTimeout(()=>el.remove(),700)}}
+if(SPLASH_TEST)setTimeout(()=>{splashMinReady=true;closeSplashQuery()},2200);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const e=id=>D.entries.find(x=>x.id===id);
 const t=v=>String(v||'').slice(0,5);
 async function get(path){const r=await fetch(API+path,{headers:H,cache:'no-store'});if(!r.ok)throw new Error(await r.text());return r.json()}
-async function load(){try{const [s,en,m]=await Promise.all([get('absch_football_settings?select=*&singleton=eq.true&limit=1'),get('absch_football_entries?select=*&active=eq.true&order=sort_order.asc'),get('absch_football_matches?select=*&order=start_time.asc,field_number.asc,match_number.asc')]);D={settings:s[0]||null,entries:en,matches:m};render()}catch(err){document.getElementById('root').innerHTML='<div class="error">Unable to load tournament data.<br><small>'+esc(err.message)+'</small><br><br><button onclick="location.reload()">Retry</button></div>'}}
+async function load(){try{const [s,en,m]=await Promise.all([get('absch_football_settings?select=*&singleton=eq.true&limit=1'),get('absch_football_entries?select=*&active=eq.true&order=sort_order.asc'),get('absch_football_matches?select=*&order=start_time.asc,field_number.asc,match_number.asc')]);D={settings:s[0]||null,entries:en,matches:m};render();splashDataReady=true;closeSplashQuery()}catch(err){document.getElementById('root').innerHTML='<div class="error">Unable to load tournament data.<br><small>'+esc(err.message)+'</small><br><br><button onclick="location.reload()">Retry</button></div>';splashDataReady=true;closeSplashQuery()}}
 function score(m){return ['live','finished'].includes(m.status)&&m.home_score!=null&&m.away_score!=null}
 function teamRow(x,src,sc,m){return '<div class="team">'+(x?.logo_url?'<img src="'+esc(x.logo_url)+'">':'<span></span>')+'<span>'+esc(x?.display_name||src||'TBD')+'</span><span class="score">'+(score(m)?sc:'–')+'</span></div>'}
 function competitionButtons(){return '<div class="compbar"><button class="comp shield" data-comp="7th|A">Y7 SHIELD</button><button class="comp cup" data-comp="7th|B/C">Y7 CUP</button><button class="comp shield" data-comp="Junior|A">JUNIOR SHIELD</button><button class="comp cup" data-comp="Junior|B/C">JUNIOR CUP</button></div>'}
