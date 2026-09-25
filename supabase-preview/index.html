@@ -5,36 +5,84 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0B1F3A">
   <title>Charles T. Darling Football Tournament 2026</title>
-  <link rel="stylesheet" href="css/styles.css?v=20260925-introvideo1">
+  <link rel="stylesheet" href="css/styles.css?v=20260925-introvideo2">
 </head>
 <body>
-<div id="ffIntroOverlay" class="ff-intro-overlay" aria-label="FieldFlow intro">
-  <video id="ffIntroVideo" autoplay muted playsinline preload="auto">
-    <source src="/ctd-football-2026/absch-football-2026/assets/fieldflow-intro.mp4" type="video/mp4">
+<style>
+  html.ff-intro-lock,html.ff-intro-lock body{overflow:hidden}
+  #ffIntroOverlay{
+    position:fixed;inset:0;z-index:2147483647;
+    background:#f4f7fb;display:grid;place-items:center;
+    opacity:1;visibility:visible;
+    transition:opacity .65s ease,visibility .65s ease;
+  }
+  #ffIntroOverlay.hide{opacity:0;visibility:hidden;pointer-events:none}
+  #ffIntroOverlay video{width:100%;height:100%;object-fit:contain;background:#f4f7fb}
+</style>
+<script>document.documentElement.classList.add('ff-intro-lock');</script>
+<div id="ffIntroOverlay" aria-label="FieldFlow intro">
+  <video id="ffIntroVideo" autoplay muted playsinline preload="auto"
+         poster="assets/fieldflow-login.webp">
+    <source src="absch-football-2026/assets/fieldflow-intro.mp4" type="video/mp4">
   </video>
 </div>
 <script>
 (function(){
   const overlay=document.getElementById('ffIntroOverlay');
   const video=document.getElementById('ffIntroVideo');
-  video.playbackRate=1.5;
-  video.defaultPlaybackRate=1.5;
-
+  const startedAt=Date.now();
+  const MIN_VISIBLE_MS=900;
   let closed=false;
+  let attempts=0;
 
-  function closeIntro(){
+  function finish(){
     if(closed)return;
+    const wait=Math.max(0,MIN_VISIBLE_MS-(Date.now()-startedAt));
     closed=true;
-    overlay.classList.add('hide');
-    setTimeout(()=>overlay.remove(),700);
+    setTimeout(()=>{
+      overlay.classList.add('hide');
+      document.documentElement.classList.remove('ff-intro-lock');
+      setTimeout(()=>overlay.remove(),700);
+    },wait);
   }
 
-  video.addEventListener('ended',closeIntro,{once:true});
-  video.addEventListener('error',closeIntro,{once:true});
-  setTimeout(closeIntro,10000);
+  function tryPlay(){
+    if(closed)return;
+    attempts+=1;
+    try{
+      video.muted=true;
+      video.defaultMuted=true;
+      video.playsInline=true;
+      video.playbackRate=1.5;
+      video.defaultPlaybackRate=1.5;
+      const p=video.play();
+      if(p&&typeof p.catch==='function'){
+        p.catch(()=>{
+          if(attempts<12)setTimeout(tryPlay,250);
+        });
+      }
+    }catch(_){
+      if(attempts<12)setTimeout(tryPlay,250);
+    }
+  }
 
-  const p=video.play();
-  if(p&&typeof p.catch==='function')p.catch(closeIntro);
+  video.addEventListener('loadedmetadata',()=>{
+    video.playbackRate=1.5;
+    video.defaultPlaybackRate=1.5;
+  });
+  video.addEventListener('canplay',tryPlay,{once:true});
+  video.addEventListener('playing',()=>{ video.playbackRate=1.5; },{once:true});
+  video.addEventListener('ended',finish,{once:true});
+
+  // A real media error should not trap the user forever.
+  video.addEventListener('error',()=>setTimeout(finish,1200),{once:true});
+
+  // Start attempt after DOM insertion; do not close the intro if autoplay
+  // temporarily rejects while the MP4 is still loading.
+  setTimeout(tryPlay,80);
+
+  // Safety exit only.
+  setTimeout(finish,12000);
 })();
 </script>
 <header class="topbar">
