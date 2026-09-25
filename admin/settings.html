@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings · CTD Football 2026</title>
+<link rel="stylesheet" href="admin.css?v=20260925-settings">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><img id="schoolLogo" alt="Craighouse"><div><h1>FieldFlow Settings</h1><p>Global Admin</p></div></div>
+  <div class="top-actions"><a class="public-link" href="./">Admin</a><a class="public-link" href="../">Public</a></div>
+</header>
+<main class="container">
+  <section id="gate" class="loading">Checking permissions…</section>
+  <section id="settingsView" class="hidden">
+    <div class="login-card" style="max-width:760px;text-align:left;margin:24px auto">
+      <h2>Tournament Settings</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <input id="name" placeholder="Tournament name">
+        <input id="short_name" placeholder="Short name">
+        <input id="sport" placeholder="Sport">
+        <input id="year" type="number" placeholder="Year">
+        <input id="timezone" placeholder="Timezone">
+        <select id="status"><option>draft</option><option>published</option><option>live</option><option>completed</option><option>archived</option></select>
+        <input id="win_points" type="number" placeholder="Win points">
+        <input id="draw_points" type="number" placeholder="Draw points">
+        <input id="loss_points" type="number" placeholder="Loss points">
+        <input id="yellow_card_points" type="number" placeholder="Yellow FP">
+        <input id="red_card_points" type="number" placeholder="Red FP">
+      </div>
+      <p><button id="save" class="btn primary">Save tournament</button></p>
+      <div id="msg" class="form-error"></div>
+    </div>
+  </section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js?v=20260922-supabase"></script>
+<script>
+const db=window.CTD_SUPABASE, slug=CTD_CONFIG.TOURNAMENT_SLUG;
+const $=id=>document.getElementById(id);
+let T=null;
+async function init(){
+  $('schoolLogo').src=CTD_CONFIG.SCHOOL_LOGO;
+  const {data:{session}}=await db.auth.getSession();
+  if(!session){location.href='./';return}
+  const role=await db.rpc('is_super_admin');
+  if(role.error||role.data!==true){$('gate').textContent='Access denied';return}
+  const tr=await db.from('tournaments').select('*').eq('slug',slug).single();
+  if(tr.error){$('gate').textContent=tr.error.message;return}
+  T=tr.data;
+  ['name','short_name','sport','year','timezone','status','win_points','draw_points','loss_points','yellow_card_points','red_card_points'].forEach(k=>$(k).value=T[k]??'');
+  $('gate').classList.add('hidden'); $('settingsView').classList.remove('hidden');
+}
+$('save').onclick=async()=>{
+  const payload={};
+  ['name','short_name','sport','timezone','status'].forEach(k=>payload[k]=$(k).value.trim());
+  ['year','win_points','draw_points','loss_points','yellow_card_points','red_card_points'].forEach(k=>payload[k]=Number($(k).value));
+  const r=await db.from('tournaments').update(payload).eq('id',T.id);
+  $('msg').textContent=r.error?r.error.message:'Saved ✓';
+};
+init();
+</script>
+</body>
+</html>
