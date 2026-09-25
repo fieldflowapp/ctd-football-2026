@@ -10,6 +10,7 @@
 <body>
 <style>
   html.ff-intro-lock,html.ff-intro-lock body{overflow:hidden}
+  html.ff-intro-lock body > :not(#ffIntroOverlay):not(script):not(style){visibility:hidden}
   #ffIntroOverlay{
     position:fixed;inset:0;z-index:2147483647;
     background:#f4f7fb;display:grid;place-items:center;
@@ -34,6 +35,7 @@
   const MIN_VISIBLE_MS=900;
   let closed=false;
   let attempts=0;
+  let videoStarted=false;
 
   function finish(){
     if(closed)return;
@@ -71,7 +73,10 @@
     video.defaultPlaybackRate=1.5;
   });
   video.addEventListener('canplay',tryPlay,{once:true});
-  video.addEventListener('playing',()=>{ video.playbackRate=1.5; },{once:true});
+  video.addEventListener('playing',()=>{
+    videoStarted=true;
+    video.playbackRate=1.5;
+  },{once:true});
   video.addEventListener('ended',finish,{once:true});
 
   // A real media error should not trap the user forever.
@@ -81,7 +86,10 @@
   // temporarily rejects while the MP4 is still loading.
   setTimeout(tryPlay,80);
 
-  // Safety exit only.
+  // If a browser refuses autoplay, do not leave the user trapped.
+  setTimeout(()=>{ if(!videoStarted) finish(); },5000);
+
+  // Absolute safety exit only.
   setTimeout(finish,12000);
 })();
 </script>
