@@ -51,7 +51,7 @@ function row(u){
   return '<div class="user" data-id="'+esc(u.id)+'">'+
     '<div><span class="label">USER</span><div class="email">'+esc(u.email)+'</div></div>'+
     '<div><span class="label">ROLE</span><span class="role">'+esc(u.role)+'</span></div>'+
-    '<div><span class="label">NEW PASSWORD</span><input class="pwd" type="password" autocomplete="new-password" placeholder="Minimum 10 characters"></div>'+
+    '<div><span class="label">NEW PASSWORD</span><input class="pwd" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></div>'+
     '<button class="btn primary set" type="button">Set password</button>'+
   '</div>';
 }
@@ -68,8 +68,9 @@ async function load(){
 async function setPassword(el){
   const pwd=el.querySelector(".pwd").value;
   const btn=el.querySelector(".set");
-  if(pwd.length<10){show("La clave debe tener al menos 10 caracteres.",true);return}
-  if(!/[A-Z]/.test(pwd)||!/[a-z]/.test(pwd)||!/[0-9]/.test(pwd)||!/[^\w]/.test(pwd)){show("Usa mayúscula, minúscula, número y símbolo.",true);return}
+  if(pwd.length<8){show("La clave debe tener al menos 8 caracteres.",true);return}
+  if(!/^[a-z0-9]+$/.test(pwd)){show("Usa solo letras minúsculas y números.",true);return}
+  if(!/[a-z]/.test(pwd)||!/[0-9]/.test(pwd)){show("La clave debe incluir al menos una letra minúscula y un número.",true);return}
   btn.disabled=true;btn.textContent="Saving…";
   try{
     const j=await api({action:"set_password",user_id:el.dataset.id,password:pwd});
