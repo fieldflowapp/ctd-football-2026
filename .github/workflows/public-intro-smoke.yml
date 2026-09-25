@@ -56,5 +56,5 @@ jobs:
         run: |
           set -euo pipefail
           BASE="https://fieldflowapp.github.io/ctd-football-2026/"
-          curl -fsSL "$BASE/js/app.js?v=20260923-english1" | grep -q "renderFixture"
-          curl -fsSL "$BASE/js/api.js?v=20260922-logos3" | grep -q "loadTournament"
+          curl -fsSL "$BASE/js/app.js?v=20260923-english1" | grep -q "loadTournament"
+          curl -fsSL "$BASE/js/api.js?v=20260922-logos3" | grep -q "getPublic"
