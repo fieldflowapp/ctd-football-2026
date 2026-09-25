@@ -1,0 +1,58 @@
+name: Public Intro Smoke Test
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - 'css/styles.css'
+      - 'absch-football-2026/assets/fieldflow-intro.mp4'
+      - '.github/workflows/public-intro-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for GitHub Pages and verify intro markup
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE="https://fieldflowapp.github.io/ctd-football-2026/"
+          TMP="$(mktemp)"
+          ok=0
+          for i in {1..18}; do
+            echo "Attempt $i: $PAGE"
+            if curl -fsSL --max-time 20 "$PAGE" -o "$TMP"; then
+              if grep -q 'id="ffIntroOverlay"' "$TMP" &&                  grep -q 'introvideo2' "$TMP" &&                  grep -q 'absch-football-2026/assets/fieldflow-intro.mp4' "$TMP"; then
+                ok=1
+                break
+              fi
+            fi
+            sleep 10
+          done
+          test "$ok" = "1"
+          grep -q "video.addEventListener('canplay',tryPlay" "$TMP"
+          grep -q "setTimeout(finish,12000)" "$TMP"
+          grep -q "playbackRate=1.5" "$TMP"
+
+      - name: Verify intro MP4 is publicly available
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIDEO="https://fieldflowapp.github.io/ctd-football-2026/absch-football-2026/assets/fieldflow-intro.mp4"
+          HEADERS="$(mktemp)"
+          BODY="$(mktemp)"
+          curl -fsSL --retry 6 --retry-delay 5 -D "$HEADERS" "$VIDEO" -o "$BODY"
+          SIZE=$(wc -c < "$BODY")
+          echo "Downloaded $SIZE bytes"
+          test "$SIZE" -gt 100000
+          grep -qiE '^content-type: video/mp4' "$HEADERS"
+
+      - name: Verify public page still loads tournament assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://fieldflowapp.github.io/ctd-football-2026/"
+          curl -fsSL "$BASE/js/app.js?v=20260923-english1" | grep -q "renderFixture"
+          curl -fsSL "$BASE/js/api.js?v=20260922-logos3" | grep -q "loadTournament"
