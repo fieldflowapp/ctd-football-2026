@@ -19,3 +19,111 @@
   .score-box{grid-template-columns:minmax(54px,1fr) 18px minmax(54px,1fr);gap:6px}
   .score-box input{min-width:54px;height:50px;font-size:26px;padding:6px 8px}
 }
+
+
+/* Match Control grouped by schedule block */
+.matches{display:block}
+.time-block{margin:0 0 24px}
+.time-block-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 10px;
+  padding:0 4px;
+}
+.time-block-title{
+  font-size:22px;
+  line-height:1;
+  font-weight:950;
+  color:var(--navy);
+}
+.time-block-subtitle{
+  margin-top:5px;
+  font-size:11px;
+  font-weight:800;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.35px;
+}
+.time-block-count{
+  flex:0 0 auto;
+  background:#e9eef5;
+  color:var(--navy);
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:11px;
+  font-weight:900;
+}
+.time-block-matches{
+  display:grid;
+  gap:12px;
+}
+
+/* Keep score entry prominent without squeezing the digits */
+.match-body{
+  grid-template-columns:minmax(0,1fr) 132px minmax(0,1fr);
+  padding:16px 14px 12px;
+}
+.score-box{
+  grid-template-columns:48px 16px 48px;
+  justify-content:center;
+  gap:6px;
+}
+.score-box input{
+  width:48px;
+  min-width:48px;
+  height:52px;
+  padding:6px;
+  font-size:27px;
+}
+.score-sep{font-size:22px}
+
+/* Card controls mimic the requested compact desktop layout */
+.match-controls{
+  grid-template-columns:
+    minmax(130px,1fr)
+    minmax(130px,1fr)
+    minmax(130px,1fr)
+    minmax(130px,1fr)
+    minmax(145px,1fr)
+    minmax(145px,1fr);
+  gap:8px;
+}
+.field label{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.save-wrap{
+  grid-column:1 / 2;
+  min-width:0;
+}
+.save-btn{min-height:42px}
+
+@media(max-width:900px){
+  .match-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .save-wrap{grid-column:1/-1}
+}
+
+@media(max-width:760px){
+  .time-block{margin-bottom:20px}
+  .time-block-title{font-size:20px}
+  .time-block-count{font-size:10px;padding:5px 8px}
+  .match-body{
+    grid-template-columns:minmax(0,1fr) 118px minmax(0,1fr);
+    gap:7px;
+    padding:12px 10px;
+  }
+  .score-box{
+    grid-template-columns:43px 14px 43px;
+    gap:4px;
+  }
+  .score-box input{
+    width:43px;
+    min-width:43px;
+    height:48px;
+    font-size:24px;
+    padding:4px;
+  }
+}
