@@ -7,7 +7,8 @@
 <title>ABSCH Football 2026</title>
 <style>
 :root{--navy:#0b2d5c;--navy2:#123f7a;--red:#c8102e;--bg:#f4f7fb;--card:#fff;--line:#d9e2ef;--text:#1f2937;--muted:#64748b}
-*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}button,select,input{font:inherit}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);position:relative}button,select,input{font:inherit}
+.ff-watermark{position:fixed;inset:0;pointer-events:none;z-index:0;display:grid;place-items:center;overflow:hidden}.ff-watermark img{width:min(62vw,620px);max-height:62vh;object-fit:contain;opacity:.04;filter:saturate(.85)}.app,.bottom{position:relative;z-index:1}
 .app{max-width:980px;margin:auto;padding:8px 8px 88px}
 .hero{background:#fff;border:1px solid var(--line);border-top:5px solid var(--navy);border-radius:18px;padding:10px;box-shadow:0 5px 16px #0f172a10}
 .head{display:grid;grid-template-columns:66px 1fr 74px;align-items:center;gap:8px}.logo{width:64px;height:64px;object-fit:contain}.head>img:last-child{width:70px;height:64px;background:#fff;border-radius:10px;padding:4px}
@@ -29,6 +30,7 @@
 </style>
 </head>
 <body>
+<div class="ff-watermark" aria-hidden="true"><img src="https://fieldflowapp.github.io/ctd-football-2026/assets/fieldflow-login.webp" alt=""></div>
 <div class="app"><div id="root"><div class="loading">Loading tournament…</div></div><footer class="site-footer">© 2026 Craighouse School · Powered by <b>FieldFlow</b></footer></div>
 <nav class="bottom"><button class="active" data-tab="fixture">⚽<br>Fixture</button><button data-tab="standings">▦<br>Standings</button><button data-tab="groups">👥<br>Groups</button><button data-tab="rules">📋<br>Rules</button></nav>
 <script>
