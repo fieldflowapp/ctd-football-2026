@@ -25,11 +25,11 @@
 .rule{background:#f7f9fb;border-left:4px solid var(--red);padding:9px;border-radius:8px;margin:7px 0;font-size:10px;line-height:1.5}.loading,.error{padding:50px 14px;text-align:center;font-weight:900;color:var(--navy)}
 .bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(980px,100%);display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid var(--line);padding:6px 7px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -5px 16px #0001;z-index:20}.bottom button{border:0;background:transparent;color:var(--muted);font-size:9px;font-weight:900;padding:7px 2px}.bottom button.active{color:var(--red)}
 @media(min-width:721px){.head{grid-template-columns:90px 1fr 90px}.logo{width:84px;height:84px}.title h1{font-size:26px}.fixture-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.groups{grid-template-columns:repeat(3,1fr)}}
-.site-footer{max-width:1500px;margin:14px auto 0;padding:14px 12px 20px;text-align:center;color:#64748b;font-size:10px;font-weight:700}.site-footer b{color:#0b2d5c}
+.site-footer{margin:14px auto 0;padding:14px 12px 8px;text-align:center;color:#64748b;font-size:10px;font-weight:700;border-top:1px solid #d9e2ef}.site-footer b{color:#0b2d5c}
 </style>
 </head>
 <body>
-<div class="app"><div id="root"><div class="loading">Loading tournament…</div></div></div>
+<div class="app"><div id="root"><div class="loading">Loading tournament…</div></div><footer class="site-footer">© 2026 Craighouse School · Powered by <b>FieldFlow</b></footer></div>
 <nav class="bottom"><button class="active" data-tab="fixture">⚽<br>Fixture</button><button data-tab="standings">▦<br>Standings</button><button data-tab="groups">👥<br>Groups</button><button data-tab="rules">📋<br>Rules</button></nav>
 <script>
 const API='https://qhsvvlcgwdmxxappplzh.supabase.co/rest/v1/';
@@ -55,5 +55,4 @@ if(tab==='rules')body='<div class="section"><h2>Rules</h2><div class="rule"><b>O
 return body}
 function bind(){document.querySelectorAll('[data-comp]').forEach(b=>b.onclick=()=>{comp=b.dataset.comp;render()});const fs=document.getElementById('fixtureSchool');if(fs)fs.onchange=()=>{fixtureSchool=fs.value;render()};document.querySelectorAll('.bottom button').forEach(b=>{b.classList.toggle('active',b.dataset.tab===tab);b.onclick=()=>{tab=b.dataset.tab;render();scrollTo(0,0)}})}
 load();setInterval(load,30000);
-</script>
-<footer class="site-footer">© 2026 Craighouse School · Powered by <b>FieldFlow</b></footer></body></html>
+</script></body></html>
