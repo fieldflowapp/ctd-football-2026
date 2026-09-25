@@ -125,6 +125,18 @@ function filtered(){
   });
 }
 
+function groupedByTime(matches){
+  const groups=new Map();
+
+  matches.forEach(m=>{
+    const key=m.startTime||'No time';
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(m);
+  });
+
+  return [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+}
+
 function renderSummary(){
   const ms=S.data?.matches||[];
 
@@ -180,10 +192,10 @@ function card(m){
   html+='</div>';
 
   html+='<div class="match-controls">';
-  html+='<div class="field"><label>Home 🟨</label><input data-k="yellowHome" type="number" min="0" value="'+n(m.yellowHome,0)+'"></div>';
-  html+='<div class="field"><label>Home 🟥</label><input data-k="redHome" type="number" min="0" value="'+n(m.redHome,0)+'"></div>';
-  html+='<div class="field"><label>Away 🟨</label><input data-k="yellowAway" type="number" min="0" value="'+n(m.yellowAway,0)+'"></div>';
-  html+='<div class="field"><label>Away 🟥</label><input data-k="redAway" type="number" min="0" value="'+n(m.redAway,0)+'"></div>';
+  html+='<div class="field"><label>Home · '+esc(m.homeTeam)+' 🟨</label><input data-k="yellowHome" type="number" min="0" value="'+n(m.yellowHome,0)+'"></div>';
+  html+='<div class="field"><label>Home · '+esc(m.homeTeam)+' 🟥</label><input data-k="redHome" type="number" min="0" value="'+n(m.redHome,0)+'"></div>';
+  html+='<div class="field"><label>Away · '+esc(m.awayTeam)+' 🟨</label><input data-k="yellowAway" type="number" min="0" value="'+n(m.yellowAway,0)+'"></div>';
+  html+='<div class="field"><label>Away · '+esc(m.awayTeam)+' 🟥</label><input data-k="redAway" type="number" min="0" value="'+n(m.redAway,0)+'"></div>';
 
   if(isFinalStage){
     html+='<div class="field"><label>Pen. Home</label><input data-k="homePenalties" type="number" min="0" value="'+esc(n(m.homePenalties,''))+'"></div>';
@@ -212,10 +224,25 @@ function render(){
   renderSummary();
   const ms=filtered();
 
-  $('matches').innerHTML=
-    ms.length
-      ? ms.map(card).join('')
-      : '<div class="loading">No matches in this filter.</div>';
+  if(!ms.length){
+    $('matches').innerHTML='<div class="loading">No matches in this filter.</div>';
+  }else{
+    $('matches').innerHTML=groupedByTime(ms).map(([time,items])=>{
+      const categories=[...new Set(items.map(m=>m.category).filter(Boolean))];
+      const subtitle=categories.length ? categories.join(' · ') : '';
+
+      return '<section class="time-block">'+
+        '<div class="time-block-head">'+
+          '<div>'+
+            '<div class="time-block-title">'+esc(time)+'</div>'+
+            (subtitle?'<div class="time-block-subtitle">'+esc(subtitle)+'</div>':'')+
+          '</div>'+
+          '<div class="time-block-count">'+items.length+' match'+(items.length===1?'':'es')+'</div>'+
+        '</div>'+
+        '<div class="time-block-matches">'+items.map(card).join('')+'</div>'+
+      '</section>';
+    }).join('');
+  }
 
   document.querySelectorAll('[data-save]').forEach(
     b=>b.addEventListener('click',()=>saveCard(b.closest('.match')))
