@@ -90,6 +90,11 @@ async function refresh(silent=false){
     setConn(true);
     render();
 
+    const settingsLink=$('superAdminSettingsLink');
+    if(settingsLink){
+      settingsLink.classList.toggle('hidden',data.role!=='super_admin');
+    }
+
     $('updatedText').textContent=
       String(data.role||'admin').toUpperCase()+
       ' · Updated '+
