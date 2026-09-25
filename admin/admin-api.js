@@ -90,15 +90,28 @@ const ADMIN_API = (() => {
 
     if(tournamentResult.error) throw tournamentResult.error;
 
-    const permissionResult = await db
-      .from('tournament_admins')
-      .select('role')
-      .eq('tournament_id',tournamentResult.data.id)
-      .eq('user_id',current.user.id)
-      .maybeSingle();
+    const [permissionResult,systemRoleResult] = await Promise.all([
+      db.from('tournament_admins')
+        .select('role')
+        .eq('tournament_id',tournamentResult.data.id)
+        .eq('user_id',current.user.id)
+        .maybeSingle(),
+
+      db.from('system_admins')
+        .select('role')
+        .eq('user_id',current.user.id)
+        .maybeSingle()
+    ]);
 
     if(permissionResult.error) throw permissionResult.error;
-    if(!permissionResult.data) throw new Error('This user is not authorized for this tournament.');
+    if(systemRoleResult.error) throw systemRoleResult.error;
+
+    const effectiveRole =
+      systemRoleResult.data?.role === 'super_admin'
+        ? 'super_admin'
+        : permissionResult.data?.role;
+
+    if(!effectiveRole) throw new Error('This user is not authorized for this tournament.');
 
     const [matchesResult,refsResult] = await Promise.all([
       db.from('v_match_details')
@@ -117,7 +130,7 @@ const ADMIN_API = (() => {
     if(refsResult.error) throw refsResult.error;
 
     return {
-      role: permissionResult.data.role,
+      role: effectiveRole,
       matches: (matchesResult.data || []).map(mapMatch),
       referees: refsResult.data || [],
       updatedAt: new Date().toISOString()
