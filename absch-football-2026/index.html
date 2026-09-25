@@ -43,6 +43,8 @@
 (function(){
   const overlay=document.getElementById('ffIntroOverlay');
   const video=document.getElementById('ffIntroVideo');
+  video.playbackRate=1.25;
+  video.defaultPlaybackRate=1.25;
   let closed=false;
   function closeIntro(){
     if(closed) return;
