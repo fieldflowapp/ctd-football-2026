@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#061722"><title>ABSCH Football 2026 · Admin</title>
+<meta name="theme-color" content="#0B5FFF">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="admin-fieldflow-icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="admin-fieldflow-icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Admin ABSCH Football">
+<title>Admin ABSCH Football</title>
 <style>
 :root{--n:#061722;--n2:#0b2940;--b:#0b5fff;--r:#ff4d4d;--g:#18d39e;--o:#ff9f1c;--bg:#eef3f6;--c:#fff;--line:#d9e3e8;--mut:#71808a;--txt:#13212b}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--txt)}button,input,select,textarea{font:inherit}.hidden{display:none!important}
@@ -171,4 +179,10 @@ window.addEventListener('error',ev=>{const box=document.getElementById('loginErr
 window.addEventListener('pageshow',()=>{const e=document.getElementById('email');if(e&&!sessionStorage.getItem('absch_token')){e.value='';}});
 document.addEventListener('DOMContentLoaded',()=>{const e=document.getElementById('email');if(e&&!sessionStorage.getItem('absch_token')){setTimeout(()=>{e.value='';},50);}});
 boot();
-</script><footer class="site-footer">© 2026 Craighouse School · Powered by <b>FieldFlow</b></footer></body></html>
+</script><footer class="site-footer">© 2026 Craighouse School · Powered by <b>FieldFlow</b></footer>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+</script>
+</body></html>
