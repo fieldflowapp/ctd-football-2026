@@ -21,8 +21,8 @@ jobs:
       - name: Build square PNG app icons from FieldFlow logo
         shell: bash
         run: |
-          magick assets/fieldflow-logo.png -trim +repage -resize 420x420 -gravity center -background white -extent 512x512 absch-football-2026/fieldflow-app-icon-512.png
-          magick absch-football-2026/fieldflow-app-icon-512.png -resize 192x192 absch-football-2026/fieldflow-app-icon-192.png
+          convert assets/fieldflow-logo.png -trim +repage -resize 420x420 -gravity center -background white -extent 512x512 absch-football-2026/fieldflow-app-icon-512.png
+          convert absch-football-2026/fieldflow-app-icon-512.png -resize 192x192 absch-football-2026/fieldflow-app-icon-192.png
           file absch-football-2026/fieldflow-app-icon-512.png
           file absch-football-2026/fieldflow-app-icon-192.png
       - name: Commit generated icons
