@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b2d5c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="fieldflow-app-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/fieldflow-logo.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ABSCH Football 2026">
 <title>ABSCH Football 2026</title>
 <style>
 :root{--navy:#0b2d5c;--navy2:#123f7a;--red:#c8102e;--bg:#f4f7fb;--card:#fff;--line:#d9e2ef;--text:#1f2937;--muted:#64748b}
@@ -86,4 +93,7 @@ if(tab==='rules')body='<div class="section"><h2>Rules</h2><div class="rule"><b>O
 return body}
 function bind(){document.querySelectorAll('[data-comp]').forEach(b=>b.onclick=()=>{comp=b.dataset.comp;render()});const fs=document.getElementById('fixtureSchool');if(fs)fs.onchange=()=>{fixtureSchool=fs.value;render()};document.querySelectorAll('.bottom button').forEach(b=>{if(b.dataset.pdf==='bases'){b.classList.remove('active');b.onclick=()=>window.open('https://drive.google.com/file/d/1rKRQyQ5b0Nasm9emUwUt06eF7KKr6Gxf/view?usp=drivesdk','_blank','noopener');return}b.classList.toggle('active',b.dataset.tab===tab);b.onclick=()=>{tab=b.dataset.tab;render();scrollTo(0,0)}})}
 load();setInterval(load,30000);
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
 </script></body></html>
