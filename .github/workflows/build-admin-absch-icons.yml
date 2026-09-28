@@ -31,4 +31,5 @@ jobs:
           git add absch-football-2026/admin/admin-fieldflow-icon-512.png absch-football-2026/admin/admin-fieldflow-icon-192.png
           git diff --cached --quiet && exit 0
           git commit -m "Build Admin ABSCH PWA icons [skip admin-icon-build]"
+          git pull --rebase origin main
           git push
