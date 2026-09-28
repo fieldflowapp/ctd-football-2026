@@ -1,0 +1,34 @@
+name: Build FieldFlow PWA icons
+
+on:
+  push:
+    paths:
+      - 'absch-football-2026/fieldflow-app-icon.svg'
+      - '.github/workflows/build-fieldflow-app-icons.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-icons:
+    if: ${{ !contains(github.event.head_commit.message || '', '[skip pwa-icon-build]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SVG renderer
+        run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
+      - name: Render PNG app icons
+        run: |
+          rsvg-convert -w 512 -h 512 absch-football-2026/fieldflow-app-icon.svg -o absch-football-2026/fieldflow-app-icon-512.png
+          rsvg-convert -w 192 -h 192 absch-football-2026/fieldflow-app-icon.svg -o absch-football-2026/fieldflow-app-icon-192.png
+          file absch-football-2026/fieldflow-app-icon-512.png
+          file absch-football-2026/fieldflow-app-icon-192.png
+      - name: Commit generated icons
+        run: |
+          git config user.name "fieldflowapp"
+          git config user.email "contacto@fieldflow.cl"
+          git add absch-football-2026/fieldflow-app-icon-512.png absch-football-2026/fieldflow-app-icon-192.png
+          git diff --cached --quiet && exit 0
+          git commit -m "Build FieldFlow PWA icons [skip pwa-icon-build]"
+          git push
