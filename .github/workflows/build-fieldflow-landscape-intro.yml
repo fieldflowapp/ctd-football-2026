@@ -1,0 +1,35 @@
+name: Build FieldFlow landscape intro
+
+on:
+  push:
+    paths:
+      - 'absch-football-2026/assets/fieldflow-intro.mp4'
+      - '.github/workflows/build-fieldflow-landscape-intro.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-landscape:
+    if: ${{ !contains(github.event.head_commit.message || '', '[skip landscape-intro-build]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build 16:9 landscape intro
+        shell: bash
+        run: |
+          ffmpeg -y -i absch-football-2026/assets/fieldflow-intro.mp4 \
+            -filter_complex "[0:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,gblur=sigma=38[bg];[0:v]scale=-2:1080[fg];[bg][fg]overlay=(W-w)/2:0[outv]" \
+            -map "[outv]" -an -c:v libx264 -preset medium -crf 25 -pix_fmt yuv420p -movflags +faststart \
+            absch-football-2026/assets/fieldflow-intro-landscape.mp4
+          ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 absch-football-2026/assets/fieldflow-intro-landscape.mp4 | grep -q '^1920x1080$'
+      - name: Commit landscape intro
+        shell: bash
+        run: |
+          git config user.name "fieldflowapp"
+          git config user.email "contacto@fieldflow.cl"
+          git add absch-football-2026/assets/fieldflow-intro-landscape.mp4
+          git diff --cached --quiet && exit 0
+          git commit -m "Build responsive FieldFlow landscape intro [skip landscape-intro-build]"
+          git push
