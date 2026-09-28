@@ -1,0 +1,32 @@
+{
+  "name": "Admin ABSCH Football",
+  "short_name": "Admin ABSCH",
+  "description": "Administration app for ABSCH Football 2026",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B5FFF",
+  "theme_color": "#0B5FFF",
+  "lang": "es-CL",
+  "icons": [
+    {
+      "src": "admin-fieldflow-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "admin-fieldflow-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "admin-fieldflow-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
