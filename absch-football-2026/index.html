@@ -24,7 +24,7 @@
 .stand-wrap{overflow:auto;border:1px solid var(--line);border-radius:11px;margin-top:8px}.stand{width:100%;min-width:700px;border-collapse:collapse;font-size:9px}.stand th{background:#f1f5f9;color:var(--navy);padding:7px 5px}.stand td{padding:7px 5px;border-top:1px solid #edf1f3;text-align:center}.stand th:nth-child(2),.stand td:nth-child(2){text-align:left}.stteam{display:flex;align-items:center;gap:5px;font-weight:900}.stteam img{width:22px;height:22px;object-fit:contain}
 .fixture-filter{display:flex;align-items:center;gap:8px;margin:8px 0 10px}.fixture-filter label{font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;white-space:nowrap}.fixture-filter select{flex:1;height:36px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 9px;color:var(--text);font-size:11px}
 .rule{background:#f7f9fb;border-left:4px solid var(--red);padding:9px;border-radius:8px;margin:7px 0;font-size:10px;line-height:1.5}.loading,.error{padding:50px 14px;text-align:center;font-weight:900;color:var(--navy)}
-.bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(980px,100%);display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid var(--line);padding:6px 7px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -5px 16px #0001;z-index:20}.bottom button{border:0;background:transparent;color:var(--muted);font-size:9px;font-weight:900;padding:7px 2px}.bottom button.active{color:var(--red)}
+.bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(980px,100%);display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid var(--line);padding:6px 7px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -5px 16px #0001;z-index:20}.bottom button{border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:900;padding:8px 2px;line-height:1.15}.bottom button.active{color:var(--red)}
 @media(min-width:721px){.head{grid-template-columns:90px 1fr 90px}.logo{width:84px;height:84px}.title h1{font-size:26px}.fixture-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.groups{grid-template-columns:repeat(3,1fr)}}
 .site-footer{margin:14px auto 0;padding:14px 12px 8px;text-align:center;color:#64748b;font-size:10px;font-weight:700;border-top:1px solid #d9e2ef}.site-footer b{color:#0b2d5c}
 
@@ -61,7 +61,7 @@
 </script>
 <div class="ff-watermark" aria-hidden="true"><img src="https://fieldflowapp.github.io/ctd-football-2026/assets/fieldflow-login.webp" alt=""></div>
 <div class="app"><div id="root"><div class="loading">Loading tournament…</div></div><footer class="site-footer">© 2026 Craighouse School · Powered by <b>FieldFlow</b></footer></div>
-<nav class="bottom"><button class="active" data-tab="fixture">⚽<br>Fixture</button><button data-tab="standings">▦<br>Standings</button><button data-tab="groups">👥<br>Groups</button><button data-pdf="bases">📄<br>Bases</button></nav>
+<nav class="bottom"><button class="active" data-tab="fixture">⚽<br>Fixture</button><button data-tab="standings">▦<br>Standings</button><button data-tab="groups">👥<br>Groups</button><button data-pdf="bases">📄<br>Rules</button></nav>
 <script>
 const API='https://qhsvvlcgwdmxxappplzh.supabase.co/rest/v1/';
 const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoc3Z2bGNnd2RteHhhcHBwbHpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTU5NzQsImV4cCI6MjEwNTY3MTk3NH0.1vOwqwZGPXr6ExIdaZHG4C1JdL_p57ZslvfigtBeHPc';
