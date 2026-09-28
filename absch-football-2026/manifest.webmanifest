@@ -1,0 +1,26 @@
+{
+  "name": "ABSCH Football 2026",
+  "short_name": "ABSCH Football",
+  "description": "Official ABSCH Football 2026 tournament - 7th Grade & Junior",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0b2d5c",
+  "lang": "es-CL",
+  "icons": [
+    {
+      "src": "fieldflow-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "fieldflow-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
