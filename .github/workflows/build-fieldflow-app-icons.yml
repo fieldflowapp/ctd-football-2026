@@ -1,18 +1,29 @@
-name: Verify official FieldFlow public PWA icons
+name: Build FieldFlow PWA icons v2
 
 on:
+  push:
+    paths:
+      - 'absch-football-2026/fieldflow-app-icon.svg'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  verify-icons:
+  build-icons:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify official PNG assets
+      - name: Install renderer
+        run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
+      - name: Render PNG icons
         run: |
-          test -f absch-football-2026/fieldflow-public-v2-192.png
-          test -f absch-football-2026/fieldflow-public-v2-512.png
-          echo "Official public PWA icons are PNG source-of-truth assets. Do not regenerate them from SVG."
+          rsvg-convert -w 512 -h 512 absch-football-2026/fieldflow-app-icon.svg -o absch-football-2026/fieldflow-public-v2-512.png
+          rsvg-convert -w 192 -h 192 absch-football-2026/fieldflow-app-icon.svg -o absch-football-2026/fieldflow-public-v2-192.png
+      - name: Commit icons
+        run: |
+          git config user.name fieldflowapp
+          git config user.email contacto@fieldflow.cl
+          git add absch-football-2026/fieldflow-public-v2-*.png
+          git diff --cached --quiet || git commit -m "Build public PWA icons v2"
+          git push
