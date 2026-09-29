@@ -323,19 +323,26 @@ async function seedFinal(){
 }
 async function saveFinal(){
   const rows=[...document.querySelectorAll('[data-final-entry]')];
-  const lanes=rows.map(r=>Number(r.querySelector('.fLane').value));
-  if(new Set(lanes).size!==lanes.length){msg($('finalMsg'),'Final lanes cannot be duplicated.','bad');return}
-  for(const row of rows){
-    const id=row.dataset.finalEntry,status=row.querySelector('.fStatus').value,raw=row.querySelector('.fTime').value,lane=Number(row.querySelector('.fLane').value);
-    const official_time=raw===''?null:Number(raw);
-    if(status==='finished'&&official_time===null){msg($('finalMsg'),'A finished finalist must have an official time.','bad');return}
-    const {error}=await sb.from('athletics_track_entries').update({status,official_time,lane,lane_source:'admin_override',updated_at:new Date().toISOString()}).eq('id',id);
-    if(error){msg($('finalMsg'),error.message,'bad');return}
-  }
+  const payload=rows.map(row=>{
+    const status=row.querySelector('.fStatus').value;
+    const raw=row.querySelector('.fTime').value;
+    return {
+      id:row.dataset.finalEntry,
+      lane:Number(row.querySelector('.fLane').value),
+      status,
+      official_time:raw===''?'':Number(raw)
+    };
+  });
+  const lanes=payload.map(x=>x.lane);
+  if(new Set(lanes).size!==lanes.length){msg($('finalMsg'),'Final lanes cannot be duplicated.','bad');return false}
+  if(payload.some(x=>x.status==='finished'&&x.official_time==='')){msg($('finalMsg'),'A finished finalist must have an official time.','bad');return false}
+  const {error}=await sb.rpc('athletics_save_final',{p_event_id:state.currentEvent.id,p_entries:payload});
+  if(error){msg($('finalMsg'),error.message,'bad');return false}
   await reloadData();msg($('finalMsg'),'Final saved. Manual lane choices preserved.','good');
+  return true;
 }
 async function completeFinal(){
-  await saveFinal();
+  const saved=await saveFinal();if(!saved)return;
   const finalHeat=state.heats.find(h=>h.stage==='final');if(!finalHeat)return;
   const next=finalHeat.status==='completed'?'scheduled':'completed';
   const {error}=await sb.from('athletics_track_heats').update({status:next,updated_at:new Date().toISOString()}).eq('id',finalHeat.id);
