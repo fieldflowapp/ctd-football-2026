@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'absch-football-2026/admin/admin-fieldflow-icon.svg'
+      - '.github/workflows/build-admin-absch-icons.yml'
   workflow_dispatch:
 
 permissions:
