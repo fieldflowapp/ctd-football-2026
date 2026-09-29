@@ -120,7 +120,6 @@ async function boot(){
 
   const cats=['Y5','Y6','Y7','Y8','Intermediate','Senior'];
   $('category').innerHTML=cats.map(x=>'<option>'+x+'</option>').join('');
-  wire();
   await refreshEventList();
 }
 
@@ -356,6 +355,7 @@ async function completeFinal(){
 }
 
 sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')location.reload()});
+wire();
 boot();
 </script>
 </body>
