@@ -20,10 +20,12 @@ jobs:
         run: |
           rsvg-convert -w 512 -h 512 absch-football-2026/fieldflow-app-icon.svg -o absch-football-2026/fieldflow-public-v2-512.png
           rsvg-convert -w 192 -h 192 absch-football-2026/fieldflow-app-icon.svg -o absch-football-2026/fieldflow-public-v2-192.png
+          cp absch-football-2026/fieldflow-public-v2-512.png absch-football-2026/fieldflow-app-icon-512.png
+          cp absch-football-2026/fieldflow-public-v2-192.png absch-football-2026/fieldflow-app-icon-192.png
       - name: Commit icons
         run: |
           git config user.name fieldflowapp
           git config user.email contacto@fieldflow.cl
-          git add absch-football-2026/fieldflow-public-v2-*.png
+          git add absch-football-2026/fieldflow-public-v2-*.png absch-football-2026/fieldflow-app-icon-*.png
           git diff --cached --quiet || git commit -m "Build public PWA icons v2"
           git push
