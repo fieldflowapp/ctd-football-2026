@@ -70,6 +70,16 @@
 }
 
 .record-card{padding:10px 12px;border-radius:11px;background:#0d3046;border:1px solid #2a617d;margin:8px 0;font-size:12px}.record-card b{color:#8fe8ff}.record-card .record-value{font-size:18px;color:#fff;font-weight:900;margin-left:5px}
+
+.split-time{display:grid;grid-template-columns:56px 12px 62px 12px 62px;gap:4px;align-items:center;justify-content:start}
+.split-time input{width:100%;min-width:0;text-align:center;padding:8px 6px}
+.split-time .sep{text-align:center;color:var(--muted);font-weight:900}
+.split-time-labels{display:grid;grid-template-columns:56px 12px 62px 12px 62px;gap:4px;font-size:9px;color:var(--muted);text-transform:uppercase;text-align:center;margin-bottom:3px}
+@media(max-width:760px){
+  .split-time{grid-template-columns:48px 10px 54px 10px 54px}
+  .split-time-labels{grid-template-columns:48px 10px 54px 10px 54px}
+  .split-time input{min-height:42px;font-size:16px;padding:7px 4px}
+}
 </style>
 </head>
 <body>
@@ -130,7 +140,40 @@ const state={tournament:null,events:[],athletes:[],registrations:[],heats:[],ent
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function colorDot(c){return '<span class="color-dot '+esc(c)+'"></span>'+esc(c)}
 function genderName(g){return g==='F'?'Girls':'Boys'}
-function fmtTime(v){if(v===null||v===undefined||v==='')return '—';return Number(v).toFixed(3)}
+function usesSplitTime(e){
+  return ['400M','600M','800M','4X100','5X80','8X50','4X400'].includes(e?.code);
+}
+function fmtTime(v,e=state.currentEvent){
+  if(v===null||v===undefined||v==='')return '—';
+  const n=Number(v);
+  if(usesSplitTime(e)){
+    const min=Math.floor(n/60),sec=n-(min*60);
+    return min>0 ? min+':'+sec.toFixed(2).padStart(5,'0') : sec.toFixed(2);
+  }
+  return n.toFixed(3);
+}
+function splitTimeInput(prefix,v){
+  const n=(v===null||v===undefined||v==='')?null:Number(v);
+  const min=n===null?'':Math.floor(n/60);
+  const rem=n===null?null:n-(Math.floor(n/60)*60);
+  const sec=rem===null?'':Math.floor(rem);
+  const cs=rem===null?'':Math.round((rem-sec)*100);
+  return '<div class="split-time-labels"><span>MIN</span><span></span><span>SEC</span><span></span><span>1/100</span></div>'+
+    '<div class="split-time"><input class="'+prefix+'Min" type="number" inputmode="numeric" min="0" max="9" value="'+min+'" placeholder="0"><span class="sep">:</span><input class="'+prefix+'Sec" type="number" inputmode="numeric" min="0" max="59" value="'+(sec===''?'':String(sec).padStart(2,'0'))+'" placeholder="00"><span class="sep">.</span><input class="'+prefix+'Cs" type="number" inputmode="numeric" min="0" max="99" value="'+(cs===''?'':String(cs).padStart(2,'0'))+'" placeholder="00"></div>';
+}
+function readTimeFromRow(row,prefix,e){
+  if(!usesSplitTime(e)){
+    const el=row.querySelector('.'+prefix+'Time');
+    const raw=el?.value??'';
+    return raw===''?null:Number(raw);
+  }
+  const minEl=row.querySelector('.'+prefix+'Min'),secEl=row.querySelector('.'+prefix+'Sec'),csEl=row.querySelector('.'+prefix+'Cs');
+  const allEmpty=[minEl,secEl,csEl].every(x=>!x||x.value==='');
+  if(allEmpty)return null;
+  const min=Number(minEl?.value||0),sec=Number(secEl?.value||0),cs=Number(csEl?.value||0);
+  if(!Number.isInteger(min)||min<0||min>9||!Number.isInteger(sec)||sec<0||sec>59||!Number.isInteger(cs)||cs<0||cs>99)return NaN;
+  return Number((min*60+sec+cs/100).toFixed(2));
+}
 function msg(el,text,type=''){el.innerHTML='<div class="message '+type+'">'+esc(text)+'</div>'}
 function eventLabel(e){return e.name+(e.has_final?' · Final':' · Timed heats')}
 function currentEvent(){return state.events.find(e=>e.id===$('event').value)||null}
@@ -283,11 +326,11 @@ function renderResults(){
   const pane=$('resultsPane'),e=state.currentEvent;if(!e){pane.innerHTML='';return}
   const heats=state.heats.filter(h=>h.stage==='heat');
   if(!heats.length){pane.innerHTML='<div class="empty">Generate series first.</div>';return}
-  pane.innerHTML=recordBanner(e)+'<div class="message">Enter official Photo Finish times in seconds (example: 12.483). Use DNS / DNF / DQ when needed.</div><div id="resultMsg"></div>'+
+  pane.innerHTML=recordBanner(e)+'<div class="message">'+(usesSplitTime(e)?'Enter time as MIN : SEC . 1/100. FieldFlow stores it internally in seconds and ranks automatically.':'Enter official Photo Finish times in seconds (example: 12.483).')+' Use DNS / DNF / DQ when needed.</div><div id="resultMsg"></div>'+
   heats.map(h=>{
     const ens=entriesForHeat(h.id).sort((a,b)=>(a.lane??999)-(b.lane??999));
     return '<div class="heat"><div class="heathead"><div><b>Heat '+h.heat_number+'</b> <span class="badge">'+h.status+'</span></div><div class="flex"><button class="btn mini good saveHeat" data-heat="'+h.id+'">Save</button><button class="btn mini '+(h.status==='completed'?'ghost':'warn')+' completeHeat" data-heat="'+h.id+'">'+(h.status==='completed'?'Reopen':'Complete heat')+'</button></div></div><div class="heatbody"><div class="tablewrap"><table><thead><tr><th>'+(e.start_mode==='mass_start'?'#':'Lane')+'</th><th>Athlete</th><th>Colour</th><th>Status</th><th>Official time</th></tr></thead><tbody>'+
-      ens.map((en,i)=>{const a=athleteForEntry(en)||{};return '<tr data-entry="'+en.id+'"><td class="lane">'+(e.start_mode==='mass_start'?(i+1):(en.lane??'—'))+'</td><td><b>'+esc(a.last_name||'')+', '+esc(a.first_name||'')+'</b></td><td>'+colorDot(a.color||'')+'</td><td><select class="entryStatus"><option value="scheduled" '+(en.status==='scheduled'?'selected':'')+'>Scheduled</option><option value="finished" '+(en.status==='finished'?'selected':'')+'>Finished</option><option value="dns" '+(en.status==='dns'?'selected':'')+'>DNS</option><option value="dnf" '+(en.status==='dnf'?'selected':'')+'>DNF</option><option value="dq" '+(en.status==='dq'?'selected':'')+'>DQ</option></select></td><td><input class="timeinput entryTime" type="number" step="0.001" min="0" value="'+(en.official_time??'')+'" placeholder="00.000"></td></tr>'}).join('')+
+      ens.map((en,i)=>{const a=athleteForEntry(en)||{};return '<tr data-entry="'+en.id+'"><td class="lane">'+(e.start_mode==='mass_start'?(i+1):(en.lane??'—'))+'</td><td><b>'+esc(a.last_name||'')+', '+esc(a.first_name||'')+'</b></td><td>'+colorDot(a.color||'')+'</td><td><select class="entryStatus"><option value="scheduled" '+(en.status==='scheduled'?'selected':'')+'>Scheduled</option><option value="finished" '+(en.status==='finished'?'selected':'')+'>Finished</option><option value="dns" '+(en.status==='dns'?'selected':'')+'>DNS</option><option value="dnf" '+(en.status==='dnf'?'selected':'')+'>DNF</option><option value="dq" '+(en.status==='dq'?'selected':'')+'>DQ</option></select></td><td>'+(usesSplitTime(e)?splitTimeInput('entry',en.official_time):'<input class="timeinput entryTime" type="number" step="0.001" min="0" inputmode="decimal" value="'+(en.official_time??'')+'" placeholder="00.000">')+'</td></tr>'}).join('')+
       '</tbody></table></div></div></div>'
   }).join('');
   document.querySelectorAll('.saveHeat').forEach(b=>b.onclick=()=>saveHeat(b.dataset.heat));
@@ -296,8 +339,9 @@ function renderResults(){
 async function saveHeat(heatId){
   const rows=[...document.querySelectorAll('[data-entry]')].filter(r=>state.entries.find(e=>e.id===r.dataset.entry)?.heat_id===heatId);
   for(const row of rows){
-    const id=row.dataset.entry,status=row.querySelector('.entryStatus').value,raw=row.querySelector('.entryTime').value;
-    const official_time=raw===''?null:Number(raw);
+    const id=row.dataset.entry,status=row.querySelector('.entryStatus').value;
+    const official_time=readTimeFromRow(row,'entry',state.currentEvent);
+    if(Number.isNaN(official_time)){msg($('resultMsg'),'Invalid time. Seconds must be 0–59 and hundredths 0–99.','bad');return}
     const patch={status,official_time};
     if(status==='finished'&&official_time===null){msg($('resultMsg'),'A finished athlete must have an official time.','bad');return}
     const {error}=await sb.from('athletics_track_entries').update(patch).eq('id',id);
@@ -327,7 +371,7 @@ async function getLiveRanking(stageMode){
 function renderResultsRanking(ranking){
   if(!ranking.length)return '<div class="empty">No official ranking available yet.</div>';
   return '<div class="tablewrap"><table><thead><tr><th>Place</th><th>Athlete</th><th>Colour</th><th>Time</th><th>Points</th></tr></thead><tbody>'+
-  ranking.map(x=>'<tr><td><b>'+x.place+'</b></td><td>'+esc(x.last_name)+', '+esc(x.first_name)+'</td><td>'+colorDot(x.color)+'</td><td><b>'+fmtTime(x.official_time)+'</b></td><td>'+Number(x.points||0).toFixed(3).replace(/\.000$/,'')+'</td></tr>').join('')+
+  ranking.map(x=>'<tr><td><b>'+x.place+'</b></td><td>'+esc(x.last_name)+', '+esc(x.first_name)+'</td><td>'+colorDot(x.color)+'</td><td><b>'+fmtTime(x.official_time,state.currentEvent)+'</b></td><td>'+Number(x.points||0).toFixed(3).replace(/\.000$/,'')+'</td></tr>').join('')+
   '</tbody></table></div>';
 }
 async function renderFinal(){
@@ -344,7 +388,7 @@ async function renderFinal(){
   if(!finalHeat){pane.innerHTML=head+'<div class="empty">Final not created yet. Complete all heats first.</div>';wireFinalButtons();return}
   const ens=entriesForHeat(finalHeat.id).sort((a,b)=>(a.lane??999)-(b.lane??999));
   pane.innerHTML=head+'<div class="heat"><div class="heathead"><b>FINAL · '+esc(e.name)+'</b><span class="badge">'+finalHeat.status+'</span></div><div class="heatbody"><div class="tablewrap"><table><thead><tr><th>Lane</th><th>Athlete</th><th>Colour</th><th>Status</th><th>Official time</th><th>Admin lane</th></tr></thead><tbody>'+
-  ens.map(en=>{const a=athleteForEntry(en)||{};return '<tr data-final-entry="'+en.id+'"><td class="lane">'+(en.lane??'—')+'</td><td><b>'+esc(a.last_name||'')+', '+esc(a.first_name||'')+'</b></td><td>'+colorDot(a.color||'')+'</td><td><select class="fStatus"><option value="scheduled" '+(en.status==='scheduled'?'selected':'')+'>Scheduled</option><option value="finished" '+(en.status==='finished'?'selected':'')+'>Finished</option><option value="dns" '+(en.status==='dns'?'selected':'')+'>DNS</option><option value="dnf" '+(en.status==='dnf'?'selected':'')+'>DNF</option><option value="dq" '+(en.status==='dq'?'selected':'')+'>DQ</option></select></td><td><input class="timeinput fTime" type="number" step="0.001" min="0" value="'+(en.official_time??'')+'"></td><td><select class="fLane">'+[1,2,3,4,5,6,7,8].map(n=>'<option value="'+n+'" '+(en.lane===n?'selected':'')+'>'+n+'</option>').join('')+'</select></td></tr>'}).join('')+
+  ens.map(en=>{const a=athleteForEntry(en)||{};return '<tr data-final-entry="'+en.id+'"><td class="lane">'+(en.lane??'—')+'</td><td><b>'+esc(a.last_name||'')+', '+esc(a.first_name||'')+'</b></td><td>'+colorDot(a.color||'')+'</td><td><select class="fStatus"><option value="scheduled" '+(en.status==='scheduled'?'selected':'')+'>Scheduled</option><option value="finished" '+(en.status==='finished'?'selected':'')+'>Finished</option><option value="dns" '+(en.status==='dns'?'selected':'')+'>DNS</option><option value="dnf" '+(en.status==='dnf'?'selected':'')+'>DNF</option><option value="dq" '+(en.status==='dq'?'selected':'')+'>DQ</option></select></td><td>'+(usesSplitTime(e)?splitTimeInput('f',en.official_time):'<input class="timeinput fTime" type="number" step="0.001" min="0" inputmode="decimal" value="'+(en.official_time??'')+'">')+'</td><td><select class="fLane">'+[1,2,3,4,5,6,7,8].map(n=>'<option value="'+n+'" '+(en.lane===n?'selected':'')+'>'+n+'</option>').join('')+'</select></td></tr>'}).join('')+
   '</tbody></table></div><div class="toolbar" style="margin-top:10px"><button class="btn good" id="saveFinal">Save final</button><button class="btn warn" id="completeFinal">'+(finalHeat.status==='completed'?'Reopen final':'Complete final')+'</button></div></div></div><h2>Official ranking</h2><div id="finalRanking">Loading…</div>';
   wireFinalButtons();
   const ranking=await getLiveRanking();if($('finalRanking'))$('finalRanking').innerHTML=renderResultsRanking(ranking);
@@ -373,16 +417,17 @@ async function saveFinal(){
   const rows=[...document.querySelectorAll('[data-final-entry]')];
   const payload=rows.map(row=>{
     const status=row.querySelector('.fStatus').value;
-    const raw=row.querySelector('.fTime').value;
+    const t=readTimeFromRow(row,'f',state.currentEvent);
     return {
       id:row.dataset.finalEntry,
       lane:Number(row.querySelector('.fLane').value),
       status,
-      official_time:raw===''?'':Number(raw)
+      official_time:t===null?'':t
     };
   });
   const lanes=payload.map(x=>x.lane);
   if(new Set(lanes).size!==lanes.length){msg($('finalMsg'),'Final lanes cannot be duplicated.','bad');return false}
+  if(payload.some(x=>Number.isNaN(x.official_time))){msg($('finalMsg'),'Invalid time. Seconds must be 0–59 and hundredths 0–99.','bad');return false}
   if(payload.some(x=>x.status==='finished'&&x.official_time==='')){msg($('finalMsg'),'A finished finalist must have an official time.','bad');return false}
   const {error}=await sb.rpc('athletics_save_final',{p_event_id:state.currentEvent.id,p_entries:payload});
   if(error){msg($('finalMsg'),error.message,'bad');return false}
