@@ -30,7 +30,46 @@
     .login{max-width:420px;margin:10vh auto}.login .panel{padding:22px}.login h1{font-size:24px;margin-bottom:5px}.login .btn{width:100%;margin-top:8px}
     .empty{padding:34px;text-align:center;color:var(--muted)}.right{margin-left:auto}.flex{display:flex;gap:8px;align-items:center}.nowrap{white-space:nowrap}
     @media(max-width:900px){.grid{grid-template-columns:1fr}.statrow{grid-template-columns:repeat(2,1fr)}.shell{padding:10px}.topbar{align-items:flex-start}.desktop-only{display:none}}
-  </style>
+  
+/* MOBILE-FIRST OPERATIONS V3 */
+
+@media(max-width:760px){
+  body{padding-bottom:calc(12px + env(safe-area-inset-bottom));-webkit-text-size-adjust:100%}
+  .shell{padding:8px}
+  .topbar{flex-direction:column;align-items:stretch;gap:10px;margin-bottom:10px}
+  .topbar>.flex{justify-content:space-between;width:100%}
+  .brand{gap:9px}.mark{width:40px;height:40px;border-radius:11px}
+  h1{font-size:17px;line-height:1.15}.sub{font-size:11px}
+  .pill{max-width:68vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .grid{grid-template-columns:1fr;gap:9px}
+  aside.panel{border-radius:14px}.panel{border-radius:14px}
+  aside.pad{padding:11px}
+  aside h2{margin-bottom:8px}
+  aside .field{margin-bottom:8px}
+  select,input{min-height:46px;font-size:16px;padding:10px 11px}
+  .tabs{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:7px;background:#082231ee;backdrop-filter:blur(8px)}
+  .tab{min-height:44px;padding:7px 4px;font-size:11px;border-radius:9px}
+  .pad{padding:10px}
+  .toolbar{position:sticky;bottom:calc(6px + env(safe-area-inset-bottom));z-index:18;background:#082231f2;border:1px solid var(--line);border-radius:12px;padding:7px;margin:8px 0 10px;box-shadow:0 -8px 24px #0005}
+  .toolbar .btn,.btn{min-height:44px;font-size:13px;padding:10px 12px}
+  .toolbar .btn{flex:1 1 130px}
+  .statrow{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.stat{padding:9px}.stat b{font-size:19px}
+  .tablewrap{border-radius:10px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;overscroll-behavior-x:contain}
+  table{min-width:700px}th,td{padding:8px 7px;font-size:12px}
+  th{font-size:9px}
+  .heat{margin:9px 0;border-radius:12px}.heathead{padding:9px;gap:8px;flex-wrap:wrap}.heatbody{padding:6px}
+  .timeinput{width:96px;min-height:42px;font-size:16px}
+  .lane{font-size:15px}
+  .message{font-size:11px;padding:8px 9px}
+  .login{margin:5vh 8px;max-width:none}.login .panel{padding:16px}.login h1{font-size:20px}
+}
+@media(min-width:761px) and (max-width:1100px){
+  .shell{padding:11px}.grid{grid-template-columns:260px 1fr;gap:10px}
+  .pad{padding:12px}.tabs{gap:6px}.tab{padding:9px 10px}
+  select,input{min-height:42px}
+}
+
+</style>
 </head>
 <body>
 <div id="loginView" class="login">
