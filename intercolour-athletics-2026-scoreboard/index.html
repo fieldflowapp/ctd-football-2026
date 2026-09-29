@@ -16,6 +16,25 @@ h1{margin:0;font-size:20px}.sub{color:var(--muted);font-size:13px}.nav{display:f
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.house{border-radius:16px;padding:18px;border:1px solid var(--line);background:#082434}.house b{font-size:34px;display:block}.house span{font-size:13px;color:var(--muted)}.house.Blue{border-top:5px solid #3283ff}.house.Red{border-top:5px solid #ff5252}.house.White{border-top:5px solid white}.house.Green{border-top:5px solid #21d98f}
 .tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px}th,td{padding:10px;border-bottom:1px solid #17384b;font-size:12px;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#0a2a3d;color:#9eb6c3;text-transform:uppercase;font-size:10px}.dot{width:10px;height:10px;display:inline-block;border-radius:50%;margin-right:6px}.dot.Blue{background:#3283ff}.dot.Red{background:#ff5252}.dot.White{background:#fff}.dot.Green{background:#21d98f}.muted{color:var(--muted)}.login{max-width:420px;margin:10vh auto;padding:20px}.login input{width:100%;background:#061c2a;border:1px solid #21465a;color:white;border-radius:10px;padding:10px;margin:5px 0 10px}.btn{border:0;border-radius:10px;padding:10px 13px;background:#0b5fff;color:#fff;font-weight:800;cursor:pointer}.hidden{display:none!important}.message{padding:10px;border:1px solid var(--line);border-radius:11px;background:#082434;font-size:12px}.leader{font-weight:900}
 @media(max-width:850px){.grid4{grid-template-columns:repeat(2,1fr)}.shell{padding:9px}}
+
+/* MOBILE-FIRST OPERATIONS V3 */
+
+@media(max-width:760px){
+  body{-webkit-text-size-adjust:100%;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  .shell{padding:8px}.top{flex-direction:column;align-items:stretch;gap:9px}.brand{gap:9px}.mark{width:40px;height:40px;border-radius:11px}
+  h1{font-size:17px;line-height:1.15}.sub{font-size:11px}
+  .nav{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}.nav a{white-space:nowrap;min-height:40px;display:flex;align-items:center}
+  #refresh{width:100%;min-height:44px}
+  .grid4{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.house{padding:12px}.house b{font-size:28px}
+  .panel{border-radius:14px;margin-bottom:9px}.pad{padding:10px}
+  .tablewrap{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:thin}
+  table{min-width:760px}th,td{padding:8px 7px;font-size:11px}
+  .login{margin:5vh 8px;max-width:none;padding:16px}.login input{font-size:16px;min-height:46px}.login .btn{min-height:46px;width:100%}
+}
+@media(min-width:761px) and (max-width:1100px){
+  .shell{padding:11px}.house{padding:14px}.house b{font-size:30px}
+}
+
 </style>
 </head>
 <body>
