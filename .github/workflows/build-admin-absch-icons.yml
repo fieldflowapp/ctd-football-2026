@@ -1,35 +1,18 @@
-name: Build Admin ABSCH PWA icons
+name: Verify official FieldFlow admin PWA icons
 
 on:
-  push:
-    paths:
-      - 'absch-football-2026/admin/admin-fieldflow-icon.svg'
-      - '.github/workflows/build-admin-absch-icons.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build-icons:
-    if: ${{ !contains(github.event.head_commit.message || '', '[skip admin-icon-build]') }}
+  verify-icons:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install SVG renderer
-        run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
-      - name: Render PNG admin icons
+      - name: Verify official PNG assets
         run: |
-          rsvg-convert -w 512 -h 512 absch-football-2026/admin/admin-fieldflow-icon.svg -o absch-football-2026/admin/admin-fieldflow-icon-512.png
-          rsvg-convert -w 192 -h 192 absch-football-2026/admin/admin-fieldflow-icon.svg -o absch-football-2026/admin/admin-fieldflow-icon-192.png
-          file absch-football-2026/admin/admin-fieldflow-icon-512.png
-          file absch-football-2026/admin/admin-fieldflow-icon-192.png
-      - name: Commit generated icons
-        run: |
-          git config user.name "fieldflowapp"
-          git config user.email "contacto@fieldflow.cl"
-          git add absch-football-2026/admin/admin-fieldflow-icon-512.png absch-football-2026/admin/admin-fieldflow-icon-192.png
-          git diff --cached --quiet && exit 0
-          git commit -m "Build Admin ABSCH PWA icons [skip admin-icon-build]"
-          git pull --rebase origin main
-          git push
+          test -f absch-football-2026/admin/fieldflow-admin-v2-192.png
+          test -f absch-football-2026/admin/fieldflow-admin-v2-512.png
+          echo "Official admin PWA icons are PNG source-of-truth assets. Do not regenerate them from SVG."
