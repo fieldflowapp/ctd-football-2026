@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#061722">
+  <title>FieldFlow Photo Finish</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <style>
+    :root{--navy:#061722;--navy2:#071d2d;--cyan:#12c8ff;--green:#18d39e;--orange:#ff9f1c;--red:#ff4d4d;--text:#f5f8fb;--muted:#9fb0bf}
+    *{box-sizing:border-box} html,body{margin:0;background:#000;color:var(--text);font-family:Arial,Helvetica,sans-serif;height:100%} body{overscroll-behavior:none}
+    .app{min-height:100dvh;background:var(--navy);display:flex;flex-direction:column}
+    header{height:58px;padding:10px 14px;background:var(--navy2);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08)}
+    .brand{font-weight:800}.brand span{color:var(--cyan)}.badge,.small,.status{font-size:12px;color:var(--muted)}
+    main{flex:1;display:flex;flex-direction:column;min-height:0}.stage{position:relative;flex:1;min-height:320px;background:#000;overflow:hidden}
+    video{width:100%;height:100%;object-fit:cover;background:#000}#reviewVideo{display:none}
+    .finish-line{position:absolute;top:0;bottom:0;left:50%;width:3px;background:var(--red);box-shadow:0 0 0 1px rgba(255,255,255,.35),0 0 18px rgba(255,77,77,.9);transform:translateX(-50%);pointer-events:none}
+    .finish-line:after{content:"META";position:absolute;top:10px;left:7px;color:white;font-size:12px;font-weight:800;background:rgba(255,77,77,.8);padding:3px 6px;border-radius:5px}
+    .timer-wrap{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);text-align:center;background:rgba(0,0,0,.58);padding:8px 14px;border-radius:12px;backdrop-filter:blur(5px)}
+    #timer{font-variant-numeric:tabular-nums;font-size:34px;font-weight:800;letter-spacing:1px}#modeText{font-size:12px;color:#d4dde5;margin-top:3px}
+    .controls{background:var(--navy2);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:grid;gap:10px}
+    .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.row.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    button{appearance:none;border:0;border-radius:12px;padding:14px 10px;font-weight:800;font-size:15px;cursor:pointer}button:disabled{opacity:.35;cursor:not-allowed}
+    .start{background:var(--green);color:#02130e}.record{background:var(--red);color:white}.stop{background:#303c46;color:white}.secondary{background:#173247;color:white}.mark{background:var(--orange);color:#211100}.reset{background:#26323b;color:white}
+    .review-panel{display:none;background:var(--navy2);padding:10px 12px}.review-panel.show{display:block}.review-time{text-align:center;font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;margin-bottom:8px}
+    .slider-wrap{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}input[type=range]{width:100%}.marks{max-height:130px;overflow:auto;border-top:1px solid rgba(255,255,255,.08);margin-top:8px;padding-top:6px}.mark-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px}
+    .status{text-align:center;min-height:16px}.fps{display:flex;align-items:center;justify-content:center;gap:8px}select{background:#102738;color:white;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px}
+  </style>
+</head>
+<body>
+<div class="app">
+<header><div class="brand">FieldFlow <span>Photo Finish</span></div><div class="badge">MVP</div></header>
+<main>
+<section class="stage">
+  <video id="camera" autoplay playsinline muted></video>
+  <video id="reviewVideo" playsinline controls></video>
+  <div class="finish-line"></div>
+  <div class="timer-wrap"><div id="timer">00:00.000</div><div id="modeText">Cámara lista</div></div>
+</section>
+<section class="review-panel" id="reviewPanel">
+  <div class="review-time" id="reviewRaceTime">00:00.000</div>
+  <div class="slider-wrap"><span class="small">Inicio</span><input id="scrubber" type="range" min="0" max="1000" value="0"><span class="small">Fin</span></div>
+  <div class="row three" style="margin-top:8px"><button class="secondary" id="prevFrame">◀ FRAME</button><button class="mark" id="markFinish">MARK FINISH</button><button class="secondary" id="nextFrame">FRAME ▶</button></div>
+  <div class="marks" id="marks"></div>
+</section>
+<section class="controls">
+  <div class="row"><button id="startBtn" class="start">START</button><button id="recordBtn" class="record" disabled>● RECORD</button></div>
+  <div class="row"><button id="stopBtn" class="stop" disabled>STOP</button><button id="reviewBtn" class="secondary" disabled>REVIEW</button></div>
+  <div class="fps"><span class="small">Paso frame:</span><select id="fpsSelect"><option value="30">30 fps</option><option value="60" selected>60 fps</option><option value="120">120 fps</option><option value="240">240 fps</option></select></div>
+  <button id="resetBtn" class="reset">RESET</button><div class="status" id="status"></div>
+</section>
+</main></div>
+<script>
+(()=>{
+const camera=document.getElementById('camera'),reviewVideo=document.getElementById('reviewVideo'),timerEl=document.getElementById('timer'),modeText=document.getElementById('modeText'),statusEl=document.getElementById('status'),startBtn=document.getElementById('startBtn'),recordBtn=document.getElementById('recordBtn'),stopBtn=document.getElementById('stopBtn'),reviewBtn=document.getElementById('reviewBtn'),resetBtn=document.getElementById('resetBtn'),reviewPanel=document.getElementById('reviewPanel'),scrubber=document.getElementById('scrubber'),prevFrame=document.getElementById('prevFrame'),nextFrame=document.getElementById('nextFrame'),markFinish=document.getElementById('markFinish'),reviewRaceTime=document.getElementById('reviewRaceTime'),fpsSelect=document.getElementById('fpsSelect'),marksEl=document.getElementById('marks');
+let stream=null,recorder=null,chunks=[],raceStarted=false,raceStartPerf=null,timerRAF=null,recordedBlobUrl=null,recordStartedRaceMs=0,marks=[],mimeType='';
+const formatMs=ms=>{ms=Math.max(0,ms||0);const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),x=Math.floor(ms%1000);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(x).padStart(3,'0')};
+const raceElapsedMs=()=>!raceStarted||raceStartPerf===null?0:performance.now()-raceStartPerf;
+function tick(){timerEl.textContent=formatMs(raceElapsedMs());timerRAF=requestAnimationFrame(tick)}
+async function initCamera(){try{statusEl.textContent='Solicitando acceso a cámara...';stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:60,max:120}},audio:false});camera.srcObject=stream;statusEl.textContent='Cámara lista.'}catch(e){statusEl.textContent='No se pudo abrir la cámara. Revisa permisos del navegador.'}}
+function chooseMime(){for(const t of ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'])if(window.MediaRecorder&&MediaRecorder.isTypeSupported(t))return t;return ''}
+startBtn.onclick=()=>{raceStarted=true;raceStartPerf=performance.now();cancelAnimationFrame(timerRAF);tick();startBtn.disabled=true;recordBtn.disabled=false;stopBtn.disabled=false;modeText.textContent='Cronómetro en marcha';statusEl.textContent='Carrera iniciada.'};
+recordBtn.onclick=()=>{if(!stream||!raceStarted)return;chunks=[];mimeType=chooseMime();try{recorder=mimeType?new MediaRecorder(stream,{mimeType}):new MediaRecorder(stream)}catch{recorder=new MediaRecorder(stream)}recordStartedRaceMs=raceElapsedMs();recorder.ondataavailable=e=>{if(e.data&&e.data.size>0)chunks.push(e.data)};recorder.onstop=()=>{const blob=new Blob(chunks,{type:recorder.mimeType||mimeType||'video/webm'});if(recordedBlobUrl)URL.revokeObjectURL(recordedBlobUrl);recordedBlobUrl=URL.createObjectURL(blob);reviewVideo.src=recordedBlobUrl;reviewBtn.disabled=false;modeText.textContent='Grabación lista para revisar';statusEl.textContent='Video guardado temporalmente en este dispositivo.'};recorder.start(100);recordBtn.disabled=true;modeText.textContent='● GRABANDO';statusEl.textContent='Grabando llegada...'};
+stopBtn.onclick=()=>{if(recorder&&recorder.state!=='inactive')recorder.stop();raceStarted=false;cancelAnimationFrame(timerRAF);stopBtn.disabled=true;recordBtn.disabled=true;startBtn.disabled=true;modeText.textContent='Carrera detenida'};
+reviewBtn.onclick=()=>{if(!recordedBlobUrl)return;camera.style.display='none';reviewVideo.style.display='block';reviewPanel.classList.add('show');reviewVideo.currentTime=0;scrubber.value=0;updateReviewTime();modeText.textContent='REVIEW'};
+const currentRaceMsFromVideo=()=>recordStartedRaceMs+(reviewVideo.currentTime*1000);
+function updateReviewTime(){reviewRaceTime.textContent=formatMs(currentRaceMsFromVideo());timerEl.textContent=formatMs(currentRaceMsFromVideo());if(reviewVideo.duration&&isFinite(reviewVideo.duration))scrubber.value=Math.round(reviewVideo.currentTime/reviewVideo.duration*1000)}
+reviewVideo.addEventListener('timeupdate',updateReviewTime);reviewVideo.addEventListener('loadedmetadata',updateReviewTime);reviewVideo.addEventListener('seeked',updateReviewTime);
+scrubber.oninput=()=>{if(reviewVideo.duration&&isFinite(reviewVideo.duration))reviewVideo.currentTime=Number(scrubber.value)/1000*reviewVideo.duration};
+function stepFrame(d){const fps=Number(fpsSelect.value||60),step=1/fps;reviewVideo.pause();reviewVideo.currentTime=Math.min(Math.max(0,reviewVideo.currentTime+d*step),reviewVideo.duration||Infinity)}
+prevFrame.onclick=()=>stepFrame(-1);nextFrame.onclick=()=>stepFrame(1);
+markFinish.onclick=()=>{marks.push(currentRaceMsFromVideo());marks.sort((a,b)=>a-b);renderMarks()};
+function renderMarks(){marksEl.innerHTML='';marks.forEach((t,i)=>{const r=document.createElement('div');r.className='mark-row';r.innerHTML='<span>Lugar '+(i+1)+'</span><strong>'+formatMs(t)+'</strong>';marksEl.appendChild(r)})}
+resetBtn.onclick=()=>{raceStarted=false;raceStartPerf=null;cancelAnimationFrame(timerRAF);timerEl.textContent='00:00.000';startBtn.disabled=false;recordBtn.disabled=true;stopBtn.disabled=true;reviewBtn.disabled=!recordedBlobUrl;camera.style.display='block';reviewVideo.style.display='none';reviewPanel.classList.remove('show');modeText.textContent='Cámara lista';statusEl.textContent='Listo para una nueva carrera.';marks=[];renderMarks()};
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));initCamera();
+})();
+</script>
+</body></html>
