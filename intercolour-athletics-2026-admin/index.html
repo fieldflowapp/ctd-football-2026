@@ -95,7 +95,7 @@
 
 <div id="appView" class="shell hidden">
   <div class="topbar">
-    <div><div class="brand"><div class="mark">FF</div><div><h1>Intercolour Athletics 2026</h1><div class="sub">Operational Track Console</div></div></div><div style="display:flex;gap:7px;margin-top:8px"><a href="./" style="color:#fff;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800;background:#0b5fff">Track</a><a href="../intercolour-athletics-2026-field-admin/" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Field</a><a href="../intercolour-athletics-2026-scoreboard/" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Scoreboard</a></div></div>
+    <div><div class="brand"><div class="mark">FF</div><div><h1>Intercolour Athletics 2026</h1><div class="sub">Operational Track Console</div></div></div><div style="display:flex;gap:7px;margin-top:8px"><a href="./" style="color:#fff;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800;background:#0b5fff">Track</a><a href="../intercolour-athletics-2026-field-admin/" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Field</a><a href="../intercolour-athletics-2026-scoreboard/" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Scoreboard</a><a id="printLink" href="../intercolour-athletics-2026-print/" target="_blank" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Print</a></div></div>
     <div class="flex"><span id="userPill" class="pill"></span><button class="btn ghost mini" id="logoutBtn">Logout</button></div>
   </div>
 
@@ -252,7 +252,7 @@ async function reloadData(){
   }else state.entries=[];
   renderAll();
 }
-function renderAll(){renderSidebar();renderRegistrations();renderSeries();renderResults();renderFinal()}
+function renderAll(){renderSidebar();const pl=$('printLink');if(pl&&state.currentEvent)pl.href='../intercolour-athletics-2026-print/?event='+encodeURIComponent(state.currentEvent.id);renderRegistrations();renderSeries();renderResults();renderFinal()}
 
 function renderSidebar(){
   const e=state.currentEvent;if(!e){$('sidebarStatus').innerHTML='';return}
