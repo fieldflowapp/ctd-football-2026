@@ -80,6 +80,12 @@
   .split-time-labels{grid-template-columns:48px 10px 54px 10px 54px}
   .split-time input{min-height:42px;font-size:16px;padding:7px 4px}
 }
+
+.modalback{position:fixed;inset:0;background:#0009;display:grid;place-items:center;padding:14px;z-index:1000}
+.modalcard{width:min(520px,100%);background:#0b2638;border:1px solid #285067;border-radius:16px;padding:16px;box-shadow:0 20px 60px #0008}
+.modalgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modalactions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+@media(max-width:560px){.modalgrid{grid-template-columns:1fr}.modalcard{max-height:92vh;overflow:auto}}
 </style>
 </head>
 <body>
@@ -108,7 +114,11 @@
       <div class="field"><label>Track event</label><select id="event"></select></div>
       <div id="eventInfo" class="message"></div>
 
-      <h2 style="margin-top:20px">Quick status</h2>
+      
+      <h2 style="margin-top:18px">Students</h2>
+      <button class="btn good" id="addAthleteBtn" style="width:100%">+ Add student</button>
+      <div class="sub" style="margin-top:6px">Add a missing athlete directly from the event screen.</div>
+<h2 style="margin-top:20px">Quick status</h2>
       <div id="sidebarStatus"></div>
     </aside>
 
@@ -125,6 +135,27 @@
       <section id="resultsPane" class="pad hidden"></section>
       <section id="finalPane" class="pad hidden"></section>
     </main>
+  </div>
+</div>
+
+
+<div id="athleteModal" class="modalback hidden">
+  <div class="modalcard">
+    <div class="flex" style="justify-content:space-between;margin-bottom:10px">
+      <div><h1 style="font-size:18px">Add student</h1><div class="sub">The student will be available immediately for registration.</div></div>
+      <button class="btn ghost mini" id="closeAthleteModal">✕</button>
+    </div>
+    <div class="modalgrid">
+      <div class="field"><label>First name</label><input id="newFirstName" autocomplete="off"></div>
+      <div class="field"><label>Last name</label><input id="newLastName" autocomplete="off"></div>
+      <div class="field"><label>Year</label><select id="newLevel"><option>Y5</option><option>Y6</option><option>Y7</option><option>Y8</option><option>Intermediate</option><option>Senior</option></select></div>
+      <div class="field"><label>Gender</label><select id="newGender"><option value="F">Female</option><option value="M">Male</option></select></div>
+      <div class="field"><label>Colour</label><select id="newColor"><option>Blue</option><option>Red</option><option>White</option><option>Green</option></select></div>
+      <div class="field"><label>Athlete ID</label><input id="newAthleteCode" placeholder="Auto-generated if blank"></div>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:4px"><input id="newRegisterCurrent" type="checkbox" style="width:auto"> Register in the currently selected event</label>
+    <div class="modalactions"><button class="btn ghost" id="cancelAthlete">Cancel</button><button class="btn primary" id="saveAthlete">Save student</button></div>
+    <div id="newAthleteMsg"></div>
   </div>
 </div>
 
@@ -191,6 +222,49 @@ async function signIn(){
 }
 async function signOut(){await sb.auth.signOut();location.reload()}
 
+
+function openAthleteModal(){
+  const e=state.currentEvent;
+  $('newFirstName').value='';$('newLastName').value='';$('newAthleteCode').value='';$('newRegisterCurrent').checked=false;
+  $('newLevel').value=e?.category||$('category')?.value||'Y7';
+  $('newGender').value=e?.gender||$('gender')?.value||'F';
+  const c=$('colour')?.value; $('newColor').value=(c&&c!=='All')?c:'Red';
+  $('newAthleteMsg').innerHTML='';
+  $('athleteModal').classList.remove('hidden');
+  setTimeout(()=>$('newFirstName').focus(),50);
+}
+function closeAthleteModal(){$('athleteModal').classList.add('hidden')}
+async function saveNewAthlete(){
+  const first=$('newFirstName').value.trim(), last=$('newLastName').value.trim();
+  if(!first||!last){msg($('newAthleteMsg'),'First name and last name are required.','bad');return}
+  const level=$('newLevel').value, gender=$('newGender').value, color=$('newColor').value;
+  const code=$('newAthleteCode').value.trim() || ('MAN-'+Date.now());
+  const btn=$('saveAthlete');btn.disabled=true;
+  try{
+    const {data:ath,error}=await sb.from('athletics_athletes').insert({
+      tournament_id:state.tournament.id,external_code:code,last_name:last,first_name:first,
+      level,gender,color,active:true,source_batch:'manual_admin'
+    }).select().single();
+    if(error) throw error;
+    if($('newRegisterCurrent').checked && state.currentEvent && state.currentEvent.category===level && state.currentEvent.gender===gender){
+      const {error:re}=await sb.from('athletics_registrations').insert({
+        tournament_id:state.tournament.id,event_id:state.currentEvent.id,athlete_id:ath.id,status:'registered'
+      });
+      if(re) throw re;
+    }
+    closeAthleteModal();
+    if(state.currentEvent && state.currentEvent.category===level && state.currentEvent.gender===gender) await reloadData();
+  }catch(e){msg($('newAthleteMsg'),e.message||String(e),'bad')}
+  finally{btn.disabled=false}
+}
+function wireAthleteModal(){
+  const b=$('addAthleteBtn');if(b)b.onclick=openAthleteModal;
+  $('closeAthleteModal').onclick=closeAthleteModal;
+  $('cancelAthlete').onclick=closeAthleteModal;
+  $('saveAthlete').onclick=saveNewAthlete;
+  $('athleteModal').onclick=e=>{if(e.target===$('athleteModal'))closeAthleteModal()};
+}
+
 async function boot(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){$('loginView').classList.remove('hidden');$('appView').classList.add('hidden');return}
@@ -211,6 +285,7 @@ async function boot(){
 }
 
 function wire(){
+  wireAthleteModal();
   $('loginBtn').onclick=signIn;$('logoutBtn').onclick=signOut;
   $('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
   $('category').onchange=refreshEventList;$('gender').onchange=refreshEventList;$('colour').onchange=renderAll;$('event').onchange=loadEvent;
