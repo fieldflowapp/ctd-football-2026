@@ -4,14 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b2d5c">
-<link rel="manifest" href="manifest.webmanifest?v=3">
-<link rel="icon" href="fieldflow-public-v2-192.png?v=3" type="image/png">
-<link rel="apple-touch-icon" href="fieldflow-public-v2-192.png?v=3">
+<link rel="manifest" href="manifest.webmanifest?v=5">
+<link rel="icon" href="fieldflow-public-v2-192.png?v=5" type="image/png">
+<link rel="apple-touch-icon" href="fieldflow-public-v2-192.png?v=5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ABSCH Football 2026">
 <title>ABSCH Football 2026</title>
+<script>
+window.__pwaInstallEvent=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  window.__pwaInstallEvent=e;
+  window.dispatchEvent(new Event('pwa-install-ready'));
+});
+</script>
 <style>
 :root{--navy:#0b2d5c;--navy2:#123f7a;--red:#c8102e;--bg:#f4f7fb;--card:#fff;--line:#d9e2ef;--text:#1f2937;--muted:#64748b}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);position:relative}button,select,input{font:inherit}
@@ -40,9 +48,17 @@
 .ff-intro-overlay video{width:100%;height:100%;background:#f4f7fb;object-position:center center}
 @media (orientation:portrait){.ff-intro-overlay video{object-fit:contain}}
 @media (orientation:landscape){.ff-intro-overlay video{object-fit:cover}}
+.pwa-install-banner{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:9998;width:min(560px,calc(100% - 20px));background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 34px #0003;padding:12px;display:none;align-items:center;gap:10px}
+.pwa-install-banner.show{display:flex}.pwa-install-banner img{width:48px;height:48px;border-radius:11px;object-fit:contain;flex:0 0 auto}.pwa-install-copy{min-width:0;flex:1}.pwa-install-copy b{display:block;color:var(--navy);font-size:13px}.pwa-install-copy small{display:block;color:var(--muted);font-size:10px;line-height:1.3;margin-top:2px}.pwa-install-actions{display:flex;gap:6px;align-items:center}.pwa-install-btn,.pwa-install-close{border:0;border-radius:10px;font-weight:900;cursor:pointer}.pwa-install-btn{background:var(--navy);color:#fff;padding:10px 12px;font-size:10px}.pwa-install-close{background:#eef2f7;color:var(--navy);width:36px;height:36px;font-size:16px}
+@media(max-width:520px){.pwa-install-banner{align-items:flex-start;flex-wrap:wrap}.pwa-install-copy{flex:1 1 calc(100% - 60px)}.pwa-install-actions{width:100%;justify-content:flex-end}}
 </style>
 </head>
 <body>
+<div id="pwaInstallBanner" class="pwa-install-banner" role="dialog" aria-label="Instalar ABSCH Football">
+  <img src="fieldflow-public-v2-192.png?v=5" alt="FieldFlow">
+  <div class="pwa-install-copy"><b>Instalar ABSCH Football</b><small id="pwaInstallText">Instala la app para abrir el torneo directamente desde tu dispositivo.</small></div>
+  <div class="pwa-install-actions"><button id="pwaInstallBtn" class="pwa-install-btn" type="button">Instalar</button><button id="pwaInstallClose" class="pwa-install-close" type="button" aria-label="Cerrar">×</button></div>
+</div>
 <div id="ffIntroOverlay" class="ff-intro-overlay" aria-label="FieldFlow intro">
   <video id="ffIntroVideo" autoplay muted playsinline preload="auto"></video>
 </div>
@@ -102,6 +118,38 @@ return body}
 function bind(){document.querySelectorAll('[data-comp]').forEach(b=>b.onclick=()=>{comp=b.dataset.comp;render()});const fs=document.getElementById('fixtureSchool');if(fs)fs.onchange=()=>{fixtureSchool=fs.value;render()};document.querySelectorAll('.bottom button').forEach(b=>{if(b.dataset.pdf==='bases'){b.classList.remove('active');b.onclick=()=>window.open('https://drive.google.com/file/d/1rKRQyQ5b0Nasm9emUwUt06eF7KKr6Gxf/view?usp=drivesdk','_blank','noopener');return}b.classList.toggle('active',b.dataset.tab===tab);b.onclick=()=>{tab=b.dataset.tab;render();scrollTo(0,0)}})}
 load();setInterval(load,30000);
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}));
 }
+(function(){
+  const banner=document.getElementById('pwaInstallBanner'),btn=document.getElementById('pwaInstallBtn'),close=document.getElementById('pwaInstallClose'),txt=document.getElementById('pwaInstallText');
+  if(!banner||!btn||!close||!txt)return;
+  const standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  if(standalone)return;
+  const ua=navigator.userAgent||'';
+  const isIOS=/iphone|ipad|ipod/i.test(ua);
+  const show=()=>banner.classList.add('show');
+  const hide=()=>banner.classList.remove('show');
+  window.addEventListener('pwa-install-ready',show);
+  if(window.__pwaInstallEvent)show();
+  if(isIOS){
+    txt.textContent='En iPhone/iPad: toca Compartir y luego “Añadir a pantalla de inicio”.';
+    btn.textContent='Cómo instalar';
+    setTimeout(show,1200);
+  }else{
+    setTimeout(()=>{if(!window.__pwaInstallEvent){txt.textContent='Puedes instalar esta app desde el menú del navegador si no aparece el botón automático.';show()}},3000);
+  }
+  btn.addEventListener('click',async()=>{
+    if(window.__pwaInstallEvent){
+      const ev=window.__pwaInstallEvent;window.__pwaInstallEvent=null;
+      await ev.prompt();
+      try{await ev.userChoice}catch(e){}
+      hide();
+      return;
+    }
+    if(isIOS){txt.textContent='Safari: Compartir ↑ → “Añadir a pantalla de inicio” → Añadir.'}
+    else{txt.textContent='Chrome/Edge: abre el menú ⋮ y elige “Instalar app” o “Añadir a pantalla principal”.'}
+  });
+  close.addEventListener('click',hide);
+  window.addEventListener('appinstalled',()=>{window.__pwaInstallEvent=null;hide()});
+})();
 </script></body></html>
