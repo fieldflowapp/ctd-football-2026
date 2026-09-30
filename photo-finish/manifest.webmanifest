@@ -1,0 +1,9 @@
+{
+  "name": "FieldFlow Photo Finish",
+  "short_name": "FF Finish",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#061722",
+  "theme_color": "#061722",
+  "description": "MVP de photo finish para atletismo escolar."
+}
