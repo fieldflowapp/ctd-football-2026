@@ -30,6 +30,8 @@ button{border:0;border-radius:12px;padding:14px 10px;font-weight:900;font-size:1
 .lanes{display:grid;grid-template-columns:1fr 1fr;gap:8px}.laneBtn{background:#102f44;color:#fff;text-align:left;border:1px solid #ffffff18}.laneBtn.saved{background:#153b31;border-color:var(--green)}
 .laneNo{font-size:17px;color:var(--cyan);font-weight:900}.athlete{display:block;font-size:11px;color:#d8e2e9;margin-top:2px}.savedTime{display:block;font-size:12px;color:#7cf0bf;margin-top:3px}
 .marks{max-height:120px;overflow:auto;border-top:1px solid #ffffff18}.markRow{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}
+.saveResults{display:none;background:var(--green);color:#022016;font-size:17px;padding:15px 12px}.saveResults.show{display:block}
+.pendingTime{color:var(--orange)!important}
 </style>
 </head>
 <body>
@@ -49,7 +51,7 @@ button{border:0;border-radius:12px;padding:14px 10px;font-weight:900;font-size:1
 <div class="slider"><span class="small">Inicio</span><input id="scrubber" type="range" min="0" max="1000" value="0"><span class="small">Fin</span></div>
 <div class="row3"><button class="dark" id="prevFrame">◀ FRAME</button><button class="orange" id="markFinish">MARK FINISH</button><button class="dark" id="nextFrame">FRAME ▶</button></div>
 <div id="assignPanel"><div class="assignTitle" id="assignTitle"></div><div class="lanes" id="laneButtons"></div></div>
-<div class="marks" id="marks"></div>
+<div class="marks" id="marks"></div><button id="saveResultsBtn" class="saveResults">SAVE RESULTS</button>
 </section>
 
 <section class="controls">
@@ -67,9 +69,9 @@ const $=id=>document.getElementById(id);
 const camera=$('camera'),reviewVideo=$('reviewVideo'),timer=$('timer'),mode=$('mode'),status=$('status');
 const cameraBtn=$('cameraBtn'),startBtn=$('startBtn'),recordBtn=$('recordBtn'),stopBtn=$('stopBtn'),reviewBtn=$('reviewBtn');
 const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubber'),prevFrame=$('prevFrame'),nextFrame=$('nextFrame'),markFinish=$('markFinish');
-const heatContext=$('heatContext'),assignPanel=$('assignPanel'),assignTitle=$('assignTitle'),laneButtons=$('laneButtons'),marksEl=$('marks');
+const heatContext=$('heatContext'),assignPanel=$('assignPanel'),assignTitle=$('assignTitle'),laneButtons=$('laneButtons'),marksEl=$('marks'),saveResultsBtn=$('saveResultsBtn');
 
-let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[];
+let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[],stagedAssignments=new Map();
 const params=new URLSearchParams(location.search),heatId=params.get('heat'),eventId=params.get('event');
 const SUPABASE_URL='https://qhsvvlcgwdmxxappplzh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
@@ -167,25 +169,68 @@ async function loadHeat(){
 }
 function renderLanes(){
   laneButtons.innerHTML=heatEntries.sort((a,b)=>(a.lane??999)-(b.lane??999)).map((en,i)=>{
-    const a=en.athlete||{},lane=en.lane??(i+1),saved=en.official_time!=null?Number(en.official_time).toFixed(3):'';
-    return '<button class="laneBtn '+(saved?'saved':'')+'" data-entry="'+en.id+'"><span class="laneNo">Lane '+lane+'</span><span class="athlete">'+esc((a.last_name||'')+', '+(a.first_name||''))+'</span>'+(saved?'<span class="savedTime">'+saved+' s</span>':'')+'</button>'
+    const a=en.athlete||{},lane=en.lane??(i+1);
+    const staged=stagedAssignments.get(en.id);
+    const saved=en.official_time!=null?Number(en.official_time).toFixed(3):'';
+    const shown=staged!=null?Number(staged).toFixed(3):saved;
+    const cls=staged!=null?'pendingTime':(saved?'saved':'');
+    const label=staged!=null?'<span class="savedTime pendingTime">Pending: '+shown+' s</span>':(saved?'<span class="savedTime">Saved: '+saved+' s</span>':'');
+    return '<button class="laneBtn '+cls+'" data-entry="'+en.id+'"><span class="laneNo">Lane '+lane+'</span><span class="athlete">'+esc((a.last_name||'')+', '+(a.first_name||''))+'</span>'+label+'</button>'
   }).join('');
-  laneButtons.querySelectorAll('.laneBtn').forEach(b=>b.addEventListener('click',()=>saveLane(b.dataset.entry)));
+  laneButtons.querySelectorAll('.laneBtn').forEach(b=>b.addEventListener('click',()=>stageLane(b.dataset.entry)));
+  updateSaveButton();
 }
 markFinish.addEventListener('click',()=>{
   pendingMs=currentMs();
   if(heatEntries.length){assignTitle.textContent='Tiempo '+(pendingMs/1000).toFixed(3)+' s — selecciona carril';assignPanel.classList.add('show');renderLanes()}
   else{marks.push({time:pendingMs});pendingMs=null;renderMarks()}
 });
-async function saveLane(entryId){
-  if(pendingMs==null||!sb)return;
+function stageLane(entryId){
+  if(pendingMs==null)return;
   const en=heatEntries.find(x=>x.id===entryId);if(!en)return;
   const sec=Number((pendingMs/1000).toFixed(3));
-  assignTitle.textContent='Guardando '+sec.toFixed(3)+' s…';
-  const {error}=await sb.from('athletics_track_entries').update({official_time:sec,status:'finished'}).eq('id',entryId);
-  if(error){assignTitle.textContent='Error: '+error.message;return}
-  en.official_time=sec;en.status='finished';marks.push({time:pendingMs,lane:en.lane});pendingMs=null;assignPanel.classList.remove('show');renderLanes();renderMarks();
+  stagedAssignments.set(entryId,sec);
+  const existing=marks.findIndex(m=>m.entryId===entryId);
+  const mark={time:pendingMs,lane:en.lane,entryId};
+  if(existing>=0)marks[existing]=mark;else marks.push(mark);
+  pendingMs=null;
+  assignPanel.classList.remove('show');
+  assignTitle.textContent='Tiempo asignado. Marca el siguiente corredor.';
+  renderLanes();
+  renderMarks();
 }
+function updateSaveButton(){
+  const count=stagedAssignments.size;
+  saveResultsBtn.classList.toggle('show',count>0);
+  saveResultsBtn.textContent=count>0?'SAVE RESULTS ('+count+')':'SAVE RESULTS';
+}
+saveResultsBtn.addEventListener('click',async()=>{
+  if(!sb||!stagedAssignments.size)return;
+  saveResultsBtn.disabled=true;
+  saveResultsBtn.textContent='SAVING…';
+  status.textContent='Guardando resultados…';
+  try{
+    for(const [entryId,sec] of stagedAssignments.entries()){
+      const {error}=await sb.from('athletics_track_entries')
+        .update({official_time:sec,status:'finished'})
+        .eq('id',entryId);
+      if(error)throw error;
+      const en=heatEntries.find(x=>x.id===entryId);
+      if(en){en.official_time=sec;en.status='finished'}
+    }
+    stagedAssignments.clear();
+    status.textContent='Resultados guardados correctamente.';
+    mode.textContent='RESULTS SAVED';
+    renderLanes();
+    renderMarks();
+  }catch(err){
+    console.error(err);
+    status.textContent='Error al guardar: '+(err.message||err);
+  }finally{
+    saveResultsBtn.disabled=false;
+    updateSaveButton();
+  }
+});
 function renderMarks(){marksEl.innerHTML=marks.slice().sort((a,b)=>a.time-b.time).map((m,i)=>'<div class="markRow"><span>'+(m.lane!=null?'Lane '+m.lane:'Lugar '+(i+1))+'</span><strong>'+fmt(m.time)+'</strong></div>').join('')}
 
 loadHeat();
