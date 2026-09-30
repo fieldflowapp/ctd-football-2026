@@ -175,7 +175,7 @@ function readTimeFromRow(row,prefix,e){
   return Number((min*60+sec+cs/100).toFixed(2));
 }
 function msg(el,text,type=''){el.innerHTML='<div class="message '+type+'">'+esc(text)+'</div>'}
-function eventLabel(e){return e.name+(e.has_final?' · Final':' · Timed heats')}
+function eventLabel(e){return e.name+(e.has_final?' · Final '+(e.finalists_count||8):' · Timed heats')}
 function currentEvent(){return state.events.find(e=>e.id===$('event').value)||null}
 function recordBanner(e){
   if(!e?.record_value)return '<div class="record-card"><b>RECORD:</b> <span class="muted">No record listed in Intercolour Records 2023.</span></div>';
@@ -232,7 +232,7 @@ async function loadEvent(){
   state.currentEvent=currentEvent();
   if(!state.currentEvent){renderAll();return}
   const e=state.currentEvent;
-  $('eventInfo').innerHTML='<b>'+esc(e.name)+'</b><br><span class="muted">'+esc(e.category)+' · '+genderName(e.gender)+' · '+(e.start_mode==='mass_start'?'Mass start':'8 lanes')+' · '+(e.has_final?'Top 8 → Final':'Top 8 overall → Points')+'</span>'+recordBanner(e);
+  $('eventInfo').innerHTML='<b>'+esc(e.name)+'</b><br><span class="muted">'+esc(e.category)+' · '+genderName(e.gender)+' · '+(e.start_mode==='mass_start'?'Mass start':'8 lanes')+' · '+(e.has_final?'Top '+(e.finalists_count||8)+' → Final':'Top 8 overall → Points')+'</span>'+recordBanner(e);
   await reloadData();
 }
 async function reloadData(){
@@ -382,13 +382,13 @@ async function renderFinal(){
     return;
   }
   const finalHeat=state.heats.find(h=>h.stage==='final');
-  let head=recordBanner(e)+'<div class="toolbar"><button class="btn primary" id="prepareFinal">Prepare Top 8 Final</button>';
+  let head=recordBanner(e)+'<div class="toolbar"><button class="btn primary" id="prepareFinal">Prepare Top '+(e.finalists_count||8)+' Final</button>';
   if(finalHeat)head+='<button class="btn good" id="seedFinal">Seed lanes center-out</button>';
   head+='</div><div id="finalMsg"></div>';
   if(!finalHeat){pane.innerHTML=head+'<div class="empty">Final not created yet. Complete all heats first.</div>';wireFinalButtons();return}
   const ens=entriesForHeat(finalHeat.id).sort((a,b)=>(a.lane??999)-(b.lane??999));
   pane.innerHTML=head+'<div class="heat"><div class="heathead"><b>FINAL · '+esc(e.name)+'</b><span class="badge">'+finalHeat.status+'</span></div><div class="heatbody"><div class="tablewrap"><table><thead><tr><th>Lane</th><th>Athlete</th><th>Colour</th><th>Status</th><th>Official time</th><th>Admin lane</th></tr></thead><tbody>'+
-  ens.map(en=>{const a=athleteForEntry(en)||{};return '<tr data-final-entry="'+en.id+'"><td class="lane">'+(en.lane??'—')+'</td><td><b>'+esc(a.last_name||'')+', '+esc(a.first_name||'')+'</b></td><td>'+colorDot(a.color||'')+'</td><td><select class="fStatus"><option value="scheduled" '+(en.status==='scheduled'?'selected':'')+'>Scheduled</option><option value="finished" '+(en.status==='finished'?'selected':'')+'>Finished</option><option value="dns" '+(en.status==='dns'?'selected':'')+'>DNS</option><option value="dnf" '+(en.status==='dnf'?'selected':'')+'>DNF</option><option value="dq" '+(en.status==='dq'?'selected':'')+'>DQ</option></select></td><td>'+(usesSplitTime(e)?splitTimeInput('f',en.official_time):'<input class="timeinput fTime" type="number" step="0.001" min="0" inputmode="decimal" value="'+(en.official_time??'')+'">')+'</td><td><select class="fLane">'+[1,2,3,4,5,6,7,8].map(n=>'<option value="'+n+'" '+(en.lane===n?'selected':'')+'>'+n+'</option>').join('')+'</select></td></tr>'}).join('')+
+  ens.map(en=>{const a=athleteForEntry(en)||{};return '<tr data-final-entry="'+en.id+'"><td class="lane">'+(en.lane??'—')+'</td><td><b>'+esc(a.last_name||'')+', '+esc(a.first_name||'')+'</b></td><td>'+colorDot(a.color||'')+'</td><td><select class="fStatus"><option value="scheduled" '+(en.status==='scheduled'?'selected':'')+'>Scheduled</option><option value="finished" '+(en.status==='finished'?'selected':'')+'>Finished</option><option value="dns" '+(en.status==='dns'?'selected':'')+'>DNS</option><option value="dnf" '+(en.status==='dnf'?'selected':'')+'>DNF</option><option value="dq" '+(en.status==='dq'?'selected':'')+'>DQ</option></select></td><td>'+(usesSplitTime(e)?splitTimeInput('f',en.official_time):'<input class="timeinput fTime" type="number" step="0.001" min="0" inputmode="decimal" value="'+(en.official_time??'')+'">')+'</td><td><select class="fLane">'+Array.from({length:(e.finalists_count||8)},(_,i)=>i+1).map(n=>'<option value="'+n+'" '+(en.lane===n?'selected':'')+'>'+n+'</option>').join('')+'</select></td></tr>'}).join('')+
   '</tbody></table></div><div class="toolbar" style="margin-top:10px"><button class="btn good" id="saveFinal">Save final</button><button class="btn warn" id="completeFinal">'+(finalHeat.status==='completed'?'Reopen final':'Complete final')+'</button></div></div></div><h2>Official ranking</h2><div id="finalRanking">Loading…</div>';
   wireFinalButtons();
   const ranking=await getLiveRanking();if($('finalRanking'))$('finalRanking').innerHTML=renderResultsRanking(ranking);
