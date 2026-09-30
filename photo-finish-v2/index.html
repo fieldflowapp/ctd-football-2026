@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#061722">
+<title>FieldFlow Photo Finish V2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--navy:#061722;--navy2:#071d2d;--cyan:#12c8ff;--green:#18d39e;--orange:#ff9f1c;--red:#ff4d4d;--muted:#9fb0bf}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
+.app{min-height:100dvh;background:var(--navy);display:flex;flex-direction:column}
+header{padding:12px 14px;background:var(--navy2);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ffffff18}
+.brand{font-weight:900}.brand span{color:var(--cyan)}.small{font-size:12px;color:var(--muted)}
+#heatContext{display:none;padding:9px 12px;background:#0a2b3f;border-bottom:1px solid #ffffff18;font-size:13px}#heatContext.show{display:block}
+main{flex:1;display:flex;flex-direction:column;min-height:0}.stage{position:relative;flex:1;min-height:330px;background:#000;overflow:hidden}
+video{width:100%;height:100%;object-fit:cover;background:#000}#reviewVideo{display:none}
+.finish-line{position:absolute;top:0;bottom:0;left:50%;width:3px;background:var(--red);box-shadow:0 0 15px var(--red);pointer-events:none}
+.finish-line:after{content:"META";position:absolute;top:10px;left:8px;font-size:11px;font-weight:900;background:#ff4d4dcc;padding:3px 6px;border-radius:5px}
+.timerbox{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:#000a;padding:8px 14px;border-radius:12px;text-align:center}
+#timer{font-size:34px;font-weight:900;font-variant-numeric:tabular-nums}.mode{font-size:12px;color:#ddd}
+.controls,.review{background:var(--navy2);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:grid;gap:9px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+button{border:0;border-radius:12px;padding:14px 10px;font-weight:900;font-size:15px}button:disabled{opacity:.35}
+.primary{background:var(--green);color:#022016}.record{background:var(--red);color:#fff}.dark{background:#173247;color:#fff}.orange{background:var(--orange);color:#211100}.cameraBtn{background:var(--cyan);color:#002033}
+#cameraBtn{display:none}.status{text-align:center;font-size:12px;color:var(--muted);min-height:17px}
+.review{display:none}.review.show{display:grid}.reviewTime{text-align:center;font-size:30px;font-weight:900;font-variant-numeric:tabular-nums}
+.slider{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}input[type=range]{width:100%}
+#assignPanel{display:none;border-top:1px solid #ffffff18;padding-top:9px}#assignPanel.show{display:block}.assignTitle{text-align:center;font-weight:900;margin-bottom:8px}
+.lanes{display:grid;grid-template-columns:1fr 1fr;gap:8px}.laneBtn{background:#102f44;color:#fff;text-align:left;border:1px solid #ffffff18}.laneBtn.saved{background:#153b31;border-color:var(--green)}
+.laneNo{font-size:17px;color:var(--cyan);font-weight:900}.athlete{display:block;font-size:11px;color:#d8e2e9;margin-top:2px}.savedTime{display:block;font-size:12px;color:#7cf0bf;margin-top:3px}
+.marks{max-height:120px;overflow:auto;border-top:1px solid #ffffff18}.markRow{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="brand">FieldFlow <span>Photo Finish</span></div><div class="small">V2</div></header>
+<div id="heatContext"></div>
+<main>
+<section class="stage">
+<video id="camera" autoplay playsinline muted></video>
+<video id="reviewVideo" playsinline muted></video>
+<div class="finish-line"></div>
+<div class="timerbox"><div id="timer">00:00.000</div><div class="mode" id="mode">Preparando cámara…</div></div>
+</section>
+
+<section class="review" id="reviewPanel">
+<div class="reviewTime" id="reviewTime">00:00.000</div>
+<div class="slider"><span class="small">Inicio</span><input id="scrubber" type="range" min="0" max="1000" value="0"><span class="small">Fin</span></div>
+<div class="row3"><button class="dark" id="prevFrame">◀ FRAME</button><button class="orange" id="markFinish">MARK FINISH</button><button class="dark" id="nextFrame">FRAME ▶</button></div>
+<div id="assignPanel"><div class="assignTitle" id="assignTitle"></div><div class="lanes" id="laneButtons"></div></div>
+<div class="marks" id="marks"></div>
+</section>
+
+<section class="controls">
+<button id="cameraBtn" class="cameraBtn">ACTIVATE CAMERA</button>
+<div class="row"><button id="startBtn" class="primary" disabled>START</button><button id="recordBtn" class="record" disabled>● RECORD</button></div>
+<div class="row"><button id="stopBtn" class="dark" disabled>STOP</button><button id="reviewBtn" class="dark" disabled>REVIEW</button></div>
+<div class="status" id="status">Cargando…</div>
+</section>
+</main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=> {
+const $=id=>document.getElementById(id);
+const camera=$('camera'),reviewVideo=$('reviewVideo'),timer=$('timer'),mode=$('mode'),status=$('status');
+const cameraBtn=$('cameraBtn'),startBtn=$('startBtn'),recordBtn=$('recordBtn'),stopBtn=$('stopBtn'),reviewBtn=$('reviewBtn');
+const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubber'),prevFrame=$('prevFrame'),nextFrame=$('nextFrame'),markFinish=$('markFinish');
+const heatContext=$('heatContext'),assignPanel=$('assignPanel'),assignTitle=$('assignTitle'),laneButtons=$('laneButtons'),marksEl=$('marks');
+
+let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[];
+const params=new URLSearchParams(location.search),heatId=params.get('heat'),eventId=params.get('event');
+const SUPABASE_URL='https://qhsvvlcgwdmxxappplzh.supabase.co';
+const SUPABASE_KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
+const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
+const fmt=ms=>{ms=Math.max(0,ms||0);const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),x=Math.floor(ms%1000);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(x).padStart(3,'0')};
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const elapsed=()=>raceRunning?performance.now()-raceStart:0;
+function tick(){timer.textContent=fmt(elapsed());raf=requestAnimationFrame(tick)}
+
+async function openCamera(){
+  cameraBtn.style.display='none';
+  status.textContent='Solicitando permiso de cámara…';
+  try{
+    if(!window.isSecureContext)throw new Error('La página no está en un contexto HTTPS seguro.');
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Este navegador no ofrece acceso a cámara.');
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},
+      audio:false
+    });
+    camera.srcObject=stream;
+    await camera.play();
+    const track=stream.getVideoTracks()[0];
+    const settings=track?track.getSettings():{};
+    status.textContent='Cámara lista'+(settings.frameRate?' · '+Math.round(settings.frameRate)+' fps':'');
+    mode.textContent='Cámara lista';
+    startBtn.disabled=false;
+  }catch(err){
+    console.error(err);
+    status.textContent='Error: '+(err.name||'CameraError')+' — '+(err.message||'No se pudo abrir la cámara');
+    mode.textContent='Cámara no disponible';
+    cameraBtn.style.display='block';
+  }
+}
+cameraBtn.addEventListener('click',openCamera);
+
+startBtn.addEventListener('click',()=>{
+  raceRunning=true;raceStart=performance.now();cancelAnimationFrame(raf);tick();
+  startBtn.disabled=true;recordBtn.disabled=false;stopBtn.disabled=false;mode.textContent='Cronómetro en marcha';
+});
+
+function bestMime(){
+  if(!window.MediaRecorder)return '';
+  for(const t of ['video/webm;codecs=vp8','video/webm','video/mp4'])if(MediaRecorder.isTypeSupported(t))return t;
+  return '';
+}
+recordBtn.addEventListener('click',()=>{
+  if(!stream||!raceRunning)return;
+  chunks=[];const type=bestMime();
+  try{recorder=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream)}catch(e){status.textContent='Error MediaRecorder: '+e.message;return}
+  recordRaceMs=elapsed();
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  recorder.onstop=()=>{
+    const blob=new Blob(chunks,{type:recorder.mimeType||type||'video/webm'});
+    if(videoUrl)URL.revokeObjectURL(videoUrl);
+    videoUrl=URL.createObjectURL(blob);reviewVideo.src=videoUrl;reviewBtn.disabled=false;
+    status.textContent='Video listo para revisar';mode.textContent='Grabación finalizada';
+  };
+  recorder.start(100);recordBtn.disabled=true;mode.textContent='● GRABANDO';
+});
+stopBtn.addEventListener('click',()=>{
+  if(recorder&&recorder.state!=='inactive')recorder.stop();
+  raceRunning=false;cancelAnimationFrame(raf);stopBtn.disabled=true;recordBtn.disabled=true;mode.textContent='Carrera detenida';
+});
+reviewBtn.addEventListener('click',()=>{
+  if(!videoUrl)return;
+  camera.style.display='none';reviewVideo.style.display='block';reviewPanel.classList.add('show');
+  reviewVideo.currentTime=0;scrubber.value=0;updateReview();mode.textContent='REVIEW';
+});
+function currentMs(){return recordRaceMs+(reviewVideo.currentTime*1000)}
+function updateReview(){
+  const t=currentMs();reviewTime.textContent=fmt(t);timer.textContent=fmt(t);
+  if(reviewVideo.duration&&isFinite(reviewVideo.duration))scrubber.value=Math.round(reviewVideo.currentTime/reviewVideo.duration*1000);
+}
+reviewVideo.addEventListener('timeupdate',updateReview);reviewVideo.addEventListener('seeked',updateReview);reviewVideo.addEventListener('loadedmetadata',updateReview);
+scrubber.addEventListener('input',()=>{if(reviewVideo.duration&&isFinite(reviewVideo.duration)){reviewVideo.pause();reviewVideo.currentTime=Number(scrubber.value)/1000*reviewVideo.duration}});
+function step(dir){reviewVideo.pause();const fps=60;reviewVideo.currentTime=Math.min(Math.max(0,reviewVideo.currentTime+dir/fps),reviewVideo.duration||Infinity)}
+prevFrame.addEventListener('click',()=>step(-1));nextFrame.addEventListener('click',()=>step(1));
+
+async function loadHeat(){
+  if(!sb||!heatId)return;
+  try{
+    const {data:h,error:he}=await sb.from('athletics_track_heats').select('*').eq('id',heatId).single();if(he)throw he;
+    const {data:ev,error:ee}=await sb.from('athletics_events').select('*').eq('id',eventId||h.event_id).single();if(ee)throw ee;
+    const {data:entries,error:xe}=await sb.from('athletics_track_entries').select('*').eq('heat_id',heatId).order('lane');if(xe)throw xe;
+    const regIds=(entries||[]).map(x=>x.registration_id).filter(Boolean);
+    let regs=[];if(regIds.length){const q=await sb.from('athletics_registrations').select('*').in('id',regIds);if(q.error)throw q.error;regs=q.data||[]}
+    const athleteIds=regs.map(r=>r.athlete_id).filter(Boolean);
+    let athletes=[];if(athleteIds.length){const q=await sb.from('athletics_athletes').select('*').in('id',athleteIds);if(q.error)throw q.error;athletes=q.data||[]}
+    heatEntries=(entries||[]).map(en=>{const reg=regs.find(r=>r.id===en.registration_id);const athlete=reg?athletes.find(a=>a.id===reg.athlete_id):null;return {...en,athlete}});
+    heatContext.innerHTML='<b>'+esc(ev.name)+'</b> · Heat '+esc(h.heat_number)+'<br><span class="small">'+heatEntries.length+' athletes</span>';heatContext.classList.add('show');
+    renderLanes();
+  }catch(err){heatContext.innerHTML='<span style="color:#ff9f1c">Heat error: '+esc(err.message||err)+'</span>';heatContext.classList.add('show')}
+}
+function renderLanes(){
+  laneButtons.innerHTML=heatEntries.sort((a,b)=>(a.lane??999)-(b.lane??999)).map((en,i)=>{
+    const a=en.athlete||{},lane=en.lane??(i+1),saved=en.official_time!=null?Number(en.official_time).toFixed(3):'';
+    return '<button class="laneBtn '+(saved?'saved':'')+'" data-entry="'+en.id+'"><span class="laneNo">Lane '+lane+'</span><span class="athlete">'+esc((a.last_name||'')+', '+(a.first_name||''))+'</span>'+(saved?'<span class="savedTime">'+saved+' s</span>':'')+'</button>'
+  }).join('');
+  laneButtons.querySelectorAll('.laneBtn').forEach(b=>b.addEventListener('click',()=>saveLane(b.dataset.entry)));
+}
+markFinish.addEventListener('click',()=>{
+  pendingMs=currentMs();
+  if(heatEntries.length){assignTitle.textContent='Tiempo '+(pendingMs/1000).toFixed(3)+' s — selecciona carril';assignPanel.classList.add('show');renderLanes()}
+  else{marks.push({time:pendingMs});pendingMs=null;renderMarks()}
+});
+async function saveLane(entryId){
+  if(pendingMs==null||!sb)return;
+  const en=heatEntries.find(x=>x.id===entryId);if(!en)return;
+  const sec=Number((pendingMs/1000).toFixed(3));
+  assignTitle.textContent='Guardando '+sec.toFixed(3)+' s…';
+  const {error}=await sb.from('athletics_track_entries').update({official_time:sec,status:'finished'}).eq('id',entryId);
+  if(error){assignTitle.textContent='Error: '+error.message;return}
+  en.official_time=sec;en.status='finished';marks.push({time:pendingMs,lane:en.lane});pendingMs=null;assignPanel.classList.remove('show');renderLanes();renderMarks();
+}
+function renderMarks(){marksEl.innerHTML=marks.slice().sort((a,b)=>a.time-b.time).map((m,i)=>'<div class="markRow"><span>'+(m.lane!=null?'Lane '+m.lane:'Lugar '+(i+1))+'</span><strong>'+fmt(m.time)+'</strong></div>').join('')}
+
+loadHeat();
+openCamera();
+});
+</script>
+</body>
+</html>
