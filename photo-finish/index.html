@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#061722">
   <title>FieldFlow Photo Finish</title>
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" href="manifest.webmanifest">\n  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{--navy:#061722;--navy2:#071d2d;--cyan:#12c8ff;--green:#18d39e;--orange:#ff9f1c;--red:#ff4d4d;--text:#f5f8fb;--muted:#9fb0bf}
     *{box-sizing:border-box} html,body{margin:0;background:#000;color:var(--text);font-family:Arial,Helvetica,sans-serif;height:100%} body{overscroll-behavior:none}
@@ -24,7 +24,18 @@
     .start{background:var(--green);color:#02130e}.record{background:var(--red);color:white}.stop{background:#303c46;color:white}.secondary{background:#173247;color:white}.mark{background:var(--orange);color:#211100}.reset{background:#26323b;color:white}
     .review-panel{display:none;background:var(--navy2);padding:10px 12px}.review-panel.show{display:block}.review-time{text-align:center;font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;margin-bottom:8px}
     .slider-wrap{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}input[type=range]{width:100%}.marks{max-height:130px;overflow:auto;border-top:1px solid rgba(255,255,255,.08);margin-top:8px;padding-top:6px}.mark-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px}
-    .status{text-align:center;min-height:16px}.fps{display:flex;align-items:center;justify-content:center;gap:8px}select{background:#102738;color:white;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px}
+    .status{text-align:center;min-height:16px}
+    .heat-context{padding:8px 12px;background:#0a2b3f;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px;display:none}
+    .heat-context.show{display:block}
+    .assign{display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1)}
+    .assign.show{display:block}
+    .assign-title{text-align:center;font-weight:900;margin-bottom:8px}
+    .lanes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .lane-btn{background:#102f44;color:white;text-align:left;padding:11px;border:1px solid rgba(255,255,255,.1)}
+    .lane-btn.saved{background:#153b31;border-color:#18d39e}
+    .lane-btn .lane-no{font-size:17px;font-weight:900;color:#12c8ff}
+    .lane-btn .athlete{font-size:11px;color:#d8e2e9;display:block;margin-top:2px}
+    .lane-btn .saved-time{font-size:12px;color:#7cf0bf;display:block;margin-top:3px}.fps{display:flex;align-items:center;justify-content:center;gap:8px}select{background:#102738;color:white;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px}
   </style>
 </head>
 <body>
@@ -33,7 +44,7 @@
 <main>
 <section class="stage">
   <video id="camera" autoplay playsinline muted></video>
-  <video id="reviewVideo" playsinline controls></video>
+  <video id="reviewVideo" playsinline muted></video>
   <div class="finish-line"></div>
   <div class="timer-wrap"><div id="timer">00:00.000</div><div id="modeText">Cámara lista</div></div>
 </section>
@@ -41,7 +52,7 @@
   <div class="review-time" id="reviewRaceTime">00:00.000</div>
   <div class="slider-wrap"><span class="small">Inicio</span><input id="scrubber" type="range" min="0" max="1000" value="0"><span class="small">Fin</span></div>
   <div class="row three" style="margin-top:8px"><button class="secondary" id="prevFrame">◀ FRAME</button><button class="mark" id="markFinish">MARK FINISH</button><button class="secondary" id="nextFrame">FRAME ▶</button></div>
-  <div class="marks" id="marks"></div>
+  <div class="assign" id="assignPanel"><div class="assign-title" id="assignTitle">Assign finish to lane</div><div class="lanes" id="laneButtons"></div></div><div class="marks" id="marks"></div>
 </section>
 <section class="controls">
   <div class="row"><button id="startBtn" class="start">START</button><button id="recordBtn" class="record" disabled>● RECORD</button></div>
@@ -52,14 +63,73 @@
 </main></div>
 <script>
 (()=>{
-const camera=document.getElementById('camera'),reviewVideo=document.getElementById('reviewVideo'),timerEl=document.getElementById('timer'),modeText=document.getElementById('modeText'),statusEl=document.getElementById('status'),startBtn=document.getElementById('startBtn'),recordBtn=document.getElementById('recordBtn'),stopBtn=document.getElementById('stopBtn'),reviewBtn=document.getElementById('reviewBtn'),resetBtn=document.getElementById('resetBtn'),reviewPanel=document.getElementById('reviewPanel'),scrubber=document.getElementById('scrubber'),prevFrame=document.getElementById('prevFrame'),nextFrame=document.getElementById('nextFrame'),markFinish=document.getElementById('markFinish'),reviewRaceTime=document.getElementById('reviewRaceTime'),fpsSelect=document.getElementById('fpsSelect'),marksEl=document.getElementById('marks');
+const camera=document.getElementById('camera'),reviewVideo=document.getElementById('reviewVideo'),timerEl=document.getElementById('timer'),modeText=document.getElementById('modeText'),statusEl=document.getElementById('status'),startBtn=document.getElementById('startBtn'),recordBtn=document.getElementById('recordBtn'),stopBtn=document.getElementById('stopBtn'),reviewBtn=document.getElementById('reviewBtn'),resetBtn=document.getElementById('resetBtn'),reviewPanel=document.getElementById('reviewPanel'),scrubber=document.getElementById('scrubber'),prevFrame=document.getElementById('prevFrame'),nextFrame=document.getElementById('nextFrame'),markFinish=document.getElementById('markFinish'),reviewRaceTime=document.getElementById('reviewRaceTime'),fpsSelect=document.getElementById('fpsSelect'),marksEl=document.getElementById('marks'),heatContext=document.getElementById('heatContext'),assignPanel=document.getElementById('assignPanel'),assignTitle=document.getElementById('assignTitle'),laneButtons=document.getElementById('laneButtons');
 let stream=null,recorder=null,chunks=[],raceStarted=false,raceStartPerf=null,timerRAF=null,recordedBlobUrl=null,recordStartedRaceMs=0,marks=[],mimeType='';
+const SUPABASE_URL='https://qhsvvlcgwdmxxappplzh.supabase.co';
+const SUPABASE_KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
+const sb=window.supabase?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+const params=new URLSearchParams(location.search);
+const heatId=params.get('heat'),eventId=params.get('event');
+let heatEntries=[],heatInfo=null,eventInfo=null,pendingFinishMs=null;
 const formatMs=ms=>{ms=Math.max(0,ms||0);const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),x=Math.floor(ms%1000);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(x).padStart(3,'0')};
 const raceElapsedMs=()=>!raceStarted||raceStartPerf===null?0:performance.now()-raceStartPerf;
 function tick(){timerEl.textContent=formatMs(raceElapsedMs());timerRAF=requestAnimationFrame(tick)}
 async function initCamera(){try{statusEl.textContent='Solicitando acceso a cámara...';stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:60,max:120}},audio:false});camera.srcObject=stream;statusEl.textContent='Cámara lista.'}catch(e){statusEl.textContent='No se pudo abrir la cámara. Revisa permisos del navegador.'}}
 function chooseMime(){for(const t of ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'])if(window.MediaRecorder&&MediaRecorder.isTypeSupported(t))return t;return ''}
-startBtn.onclick=()=>{raceStarted=true;raceStartPerf=performance.now();cancelAnimationFrame(timerRAF);tick();startBtn.disabled=true;recordBtn.disabled=false;stopBtn.disabled=false;modeText.textContent='Cronómetro en marcha';statusEl.textContent='Carrera iniciada.'};
+
+async function loadHeatContext(){
+  if(!sb||!heatId)return;
+  try{
+    const {data:h,error:he}=await sb.from('athletics_track_heats').select('*').eq('id',heatId).single();
+    if(he)throw he; heatInfo=h;
+    const {data:e,error:ee}=await sb.from('athletics_events').select('*').eq('id',eventId||h.event_id).single();
+    if(ee)throw ee; eventInfo=e;
+    const {data:entries,error:enErr}=await sb.from('athletics_track_entries').select('*').eq('heat_id',heatId).order('lane');
+    if(enErr)throw enErr;
+    const regIds=(entries||[]).map(x=>x.registration_id).filter(Boolean);
+    let regs=[]; if(regIds.length){const q=await sb.from('athletics_registrations').select('*').in('id',regIds);if(q.error)throw q.error;regs=q.data||[]}
+    const athleteIds=regs.map(x=>x.athlete_id).filter(Boolean);
+    let athletes=[]; if(athleteIds.length){const q=await sb.from('athletics_athletes').select('*').in('id',athleteIds);if(q.error)throw q.error;athletes=q.data||[]}
+    heatEntries=(entries||[]).map(en=>{
+      const reg=regs.find(r=>r.id===en.registration_id);
+      const athlete=reg?athletes.find(at=>at.id===reg.athlete_id):null;
+      return {...en,athlete};
+    }).sort((x,y)=>(x.lane??999)-(y.lane??999));
+    heatContext.innerHTML='<b>'+escapeHtml(eventInfo?.name||'Event')+'</b> · Heat '+escapeHtml(h.heat_number)+'<br><span class="small">'+heatEntries.length+' athletes · Photo Finish linked to Athletics</span>';
+    heatContext.classList.add('show');
+    renderLaneButtons();
+  }catch(err){
+    heatContext.innerHTML='<span style="color:#ff9f1c">Heat link error: '+escapeHtml(err.message||err)+'</span>';
+    heatContext.classList.add('show');
+  }
+}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function renderLaneButtons(){
+  if(!heatId||!heatEntries.length){laneButtons.innerHTML='';return}
+  laneButtons.innerHTML=heatEntries.map((en,i)=>{
+    const at=en.athlete||{};
+    const lane=en.lane??(i+1);
+    const saved=en.official_time!=null?Number(en.official_time).toFixed(3):'';
+    return '<button class="lane-btn '+(saved?'saved':'')+'" data-entry="'+en.id+'"><span class="lane-no">Lane '+lane+'</span><span class="athlete">'+escapeHtml((at.last_name||'')+', '+(at.first_name||''))+'</span>'+(saved?'<span class="saved-time">Saved: '+saved+' s</span>':'')+'</button>';
+  }).join('');
+  laneButtons.querySelectorAll('.lane-btn').forEach(btn=>btn.onclick=()=>assignPendingToEntry(btn.dataset.entry));
+}
+async function assignPendingToEntry(entryId){
+  if(pendingFinishMs===null||!sb)return;
+  const en=heatEntries.find(x=>x.id===entryId); if(!en)return;
+  const seconds=Number((pendingFinishMs/1000).toFixed(3));
+  if(en.official_time!=null&&!confirm('Lane '+(en.lane??'')+' already has '+Number(en.official_time).toFixed(3)+' s. Replace it?'))return;
+  assignTitle.textContent='Saving '+seconds.toFixed(3)+' s...';
+  const {error}=await sb.from('athletics_track_entries').update({official_time:seconds,status:'finished'}).eq('id',entryId);
+  if(error){assignTitle.textContent='Could not save: '+error.message;return}
+  en.official_time=seconds; en.status='finished';
+  marks.push({time:pendingFinishMs,lane:en.lane,entryId});
+  pendingFinishMs=null;
+  assignTitle.textContent='Saved. Mark the next athlete.';
+  assignPanel.classList.remove('show');
+  renderLaneButtons(); renderMarks();
+}
+\nstartBtn.onclick=()=>{raceStarted=true;raceStartPerf=performance.now();cancelAnimationFrame(timerRAF);tick();startBtn.disabled=true;recordBtn.disabled=false;stopBtn.disabled=false;modeText.textContent='Cronómetro en marcha';statusEl.textContent='Carrera iniciada.'};
 recordBtn.onclick=()=>{if(!stream||!raceStarted)return;chunks=[];mimeType=chooseMime();try{recorder=mimeType?new MediaRecorder(stream,{mimeType}):new MediaRecorder(stream)}catch{recorder=new MediaRecorder(stream)}recordStartedRaceMs=raceElapsedMs();recorder.ondataavailable=e=>{if(e.data&&e.data.size>0)chunks.push(e.data)};recorder.onstop=()=>{const blob=new Blob(chunks,{type:recorder.mimeType||mimeType||'video/webm'});if(recordedBlobUrl)URL.revokeObjectURL(recordedBlobUrl);recordedBlobUrl=URL.createObjectURL(blob);reviewVideo.src=recordedBlobUrl;reviewBtn.disabled=false;modeText.textContent='Grabación lista para revisar';statusEl.textContent='Video guardado temporalmente en este dispositivo.'};recorder.start(100);recordBtn.disabled=true;modeText.textContent='● GRABANDO';statusEl.textContent='Grabando llegada...'};
 stopBtn.onclick=()=>{if(recorder&&recorder.state!=='inactive')recorder.stop();raceStarted=false;cancelAnimationFrame(timerRAF);stopBtn.disabled=true;recordBtn.disabled=true;startBtn.disabled=true;modeText.textContent='Carrera detenida'};
 reviewBtn.onclick=()=>{if(!recordedBlobUrl)return;camera.style.display='none';reviewVideo.style.display='block';reviewPanel.classList.add('show');reviewVideo.currentTime=0;scrubber.value=0;updateReviewTime();modeText.textContent='REVIEW'};
@@ -69,10 +139,21 @@ reviewVideo.addEventListener('timeupdate',updateReviewTime);reviewVideo.addEvent
 scrubber.oninput=()=>{if(reviewVideo.duration&&isFinite(reviewVideo.duration))reviewVideo.currentTime=Number(scrubber.value)/1000*reviewVideo.duration};
 function stepFrame(d){const fps=Number(fpsSelect.value||60),step=1/fps;reviewVideo.pause();reviewVideo.currentTime=Math.min(Math.max(0,reviewVideo.currentTime+d*step),reviewVideo.duration||Infinity)}
 prevFrame.onclick=()=>stepFrame(-1);nextFrame.onclick=()=>stepFrame(1);
-markFinish.onclick=()=>{marks.push(currentRaceMsFromVideo());marks.sort((a,b)=>a-b);renderMarks()};
-function renderMarks(){marksEl.innerHTML='';marks.forEach((t,i)=>{const r=document.createElement('div');r.className='mark-row';r.innerHTML='<span>Lugar '+(i+1)+'</span><strong>'+formatMs(t)+'</strong>';marksEl.appendChild(r)})}
-resetBtn.onclick=()=>{raceStarted=false;raceStartPerf=null;cancelAnimationFrame(timerRAF);timerEl.textContent='00:00.000';startBtn.disabled=false;recordBtn.disabled=true;stopBtn.disabled=true;reviewBtn.disabled=!recordedBlobUrl;camera.style.display='block';reviewVideo.style.display='none';reviewPanel.classList.remove('show');modeText.textContent='Cámara lista';statusEl.textContent='Listo para una nueva carrera.';marks=[];renderMarks()};
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));initCamera();
+markFinish.onclick=()=>{
+  pendingFinishMs=currentRaceMsFromVideo();
+  if(heatId&&heatEntries.length){
+    assignTitle.textContent='Time '+(pendingFinishMs/1000).toFixed(3)+' s — select lane';
+    assignPanel.classList.add('show');
+    renderLaneButtons();
+  }else{
+    marks.push({time:pendingFinishMs,lane:null});
+    pendingFinishMs=null;
+    renderMarks();
+  }
+};
+function renderMarks(){marksEl.innerHTML='';marks.slice().sort((x,y)=>(x.time??x)-(y.time??y)).forEach((m,i)=>{const t=m.time??m;const r=document.createElement('div');r.className='mark-row';r.innerHTML='<span>'+(m.lane!=null?'Lane '+m.lane:'Lugar '+(i+1))+'</span><strong>'+formatMs(t)+'</strong>';marksEl.appendChild(r)})}
+resetBtn.onclick=()=>{raceStarted=false;raceStartPerf=null;cancelAnimationFrame(timerRAF);timerEl.textContent='00:00.000';startBtn.disabled=false;recordBtn.disabled=true;stopBtn.disabled=true;reviewBtn.disabled=!recordedBlobUrl;camera.style.display='block';reviewVideo.style.display='none';reviewPanel.classList.remove('show');modeText.textContent='Cámara lista';statusEl.textContent='Listo para una nueva carrera.';marks=[];pendingFinishMs=null;assignPanel.classList.remove('show');renderMarks()};
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));initCamera();loadHeatContext();
 })();
 </script>
 </body></html>
