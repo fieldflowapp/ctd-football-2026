@@ -1,4 +1,4 @@
-const CACHE='absch-public-v5';
+const CACHE='absch-public-v6';
 const CORE=["./","./index.html","./manifest.webmanifest","./fieldflow-public-v2-192.png","./fieldflow-public-v2-512.png"];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()));
