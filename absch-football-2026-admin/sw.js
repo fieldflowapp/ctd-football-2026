@@ -1,4 +1,4 @@
-const CACHE='absch-admin-v5';
+const CACHE='absch-admin-v6';
 const CORE=["./","./index.html","./manifest.webmanifest","./admin-fieldflow-icon-192.png","./admin-fieldflow-icon-512.png"];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()));
