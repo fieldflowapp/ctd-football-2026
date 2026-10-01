@@ -378,7 +378,7 @@ function renderRegistrations(){
   state.registrations.filter(r=>r.status==='registered').forEach(r=>{const a=state.athletes.find(x=>x.id===r.athlete_id);if(a)counts[a.color]++});
   const colour=$('colour')?.value||'All';
   const visibleAthletes=colour==='All'?state.athletes:state.athletes.filter(a=>a.color===colour);
-  pane.innerHTML='<div class="toolbar"><button class="btn primary" id="saveRegs">Save changes</button><span class="muted">Select athletes for '+esc(e.name)+(colour!=='All'?' · '+esc(colour):'')+'. Database rules enforce colour limits.</span></div>'+
+  pane.innerHTML='<div class="toolbar"><button class="btn primary" id="saveRegs">Save changes</button><span class="muted">Select athletes for '+esc(e.name)+(colour!=='All'?' · '+esc(colour):'')+'. TEST MODE: registrations are unlimited for this event.</span></div>'+
     '<div class="statrow">'+['Blue','Red','White','Green'].map(c=>'<div class="stat"><b>'+counts[c]+'</b><span>'+c+' registered</span></div>').join('')+'</div>'+
     '<div class="tablewrap"><table><thead><tr><th>In</th><th>Athlete</th><th>Colour</th><th>Level</th></tr></thead><tbody>'+
     visibleAthletes.map(a=>'<tr><td><input style="width:auto" type="checkbox" class="regcb" data-id="'+a.id+'" '+(reg.has(a.id)?'checked':'')+'></td><td><b>'+esc(a.last_name)+', '+esc(a.first_name)+'</b><br><span class="muted">'+esc(a.external_code)+'</span></td><td>'+colorDot(a.color)+'</td><td>'+esc(a.level)+' · '+genderName(a.gender)+'</td></tr>').join('')+
@@ -410,9 +410,13 @@ function athleteForEntry(en){
 function renderSeries(){
   const pane=$('seriesPane'),e=state.currentEvent;if(!e){pane.innerHTML='';return}
   const heats=state.heats.filter(h=>h.stage==='heat');
-  let top=recordBanner(e)+'<div class="toolbar"><button class="btn primary" id="generateHeats">Generate / Rebuild heats</button>';
-  if(e.start_mode==='mass_start')top+='<input id="massCapacity" type="number" min="2" style="width:140px" placeholder="Runners / heat">';
-  top+=' <span class="muted">'+(e.start_mode==='mass_start'?'Mass start: choose capacity or leave empty for one large heat.':'Fixed colour lanes: Blue 1/5 · Red 2/6 · White 3/7 · Green 4/8')+'</span></div><div id="seriesMsg"></div>';
+  const registered=state.registrations.filter(r=>r.status==='registered').length;
+  const minHeats=e.start_mode==='lanes'?Math.max(1,Math.ceil(registered/8)):1;
+  const suggested=Math.max(minHeats,heats.length||minHeats);
+  let top=recordBanner(e)+'<div class="toolbar"><button class="btn primary" id="generateHeats">Generate / Rebuild heats</button>'+
+    '<div style="display:flex;align-items:center;gap:6px"><label style="margin:0">Series</label><input id="heatCount" type="number" min="'+minHeats+'" value="'+suggested+'" style="width:90px"></div>'+
+    '<span class="muted"><b>'+registered+' registered.</b> TEST MODE: choose the number of series. Athletes are shuffled randomly; earlier series are filled first and the last receives the remainder.'+
+    (e.start_mode==='lanes'?' Maximum 8 runners per series.':'')+'</span></div><div id="seriesMsg"></div>';
   if(!heats.length){pane.innerHTML=top+'<div class="empty">No series generated yet.</div>'}
   else pane.innerHTML=top+heats.map(h=>{
     const ens=entriesForHeat(h.id).sort((a,b)=>(a.lane??999)-(b.lane??999));
@@ -423,12 +427,19 @@ function renderSeries(){
   const btn=$('generateHeats');if(btn)btn.onclick=generateHeats;
 }
 async function generateHeats(){
-  const cap=state.currentEvent.start_mode==='mass_start'&&$('massCapacity')&&$('massCapacity').value?Number($('massCapacity').value):null;
+  const heatCount=Number($('heatCount')?.value||0);
+  if(!Number.isInteger(heatCount)||heatCount<1){msg($('seriesMsg'),'Choose a valid number of series.','bad');return}
   $('generateHeats').disabled=true;
-  const {data,error}=await sb.rpc('athletics_generate_heats',{p_event_id:state.currentEvent.id,p_capacity:cap});
+  const {data,error}=await sb.rpc('athletics_generate_heats',{
+    p_event_id:state.currentEvent.id,
+    p_capacity:null,
+    p_heat_count:heatCount
+  });
   $('generateHeats').disabled=false;
   if(error){msg($('seriesMsg'),error.message,'bad');return}
-  await reloadData();msg($('seriesMsg'),'Series generated successfully.','good');
+  await reloadData();
+  const info=data&&data[0];
+  msg($('seriesMsg'),'Series generated randomly'+(info?' · '+info.registrations+' athletes · '+info.heats_created+' series.':'.'),'good');
 }
 function renderResults(){
   const pane=$('resultsPane'),e=state.currentEvent;if(!e){pane.innerHTML='';return}
