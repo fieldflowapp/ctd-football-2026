@@ -1,10 +1,10 @@
 {
-  "id": "./",
+  "id": "/ctd-football-2026/absch-football-2026-admin/",
   "name": "Admin ABSCH Football",
   "short_name": "Admin ABSCH",
   "description": "Administration app for ABSCH Football 2026",
-  "start_url": "./?source=pwa",
-  "scope": "./",
+  "start_url": "/ctd-football-2026/absch-football-2026-admin/?source=pwa-admin",
+  "scope": "/ctd-football-2026/absch-football-2026-admin/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0B5FFF",
