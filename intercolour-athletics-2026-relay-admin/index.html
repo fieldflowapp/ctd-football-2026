@@ -53,7 +53,7 @@ table{width:100%;border-collapse:collapse;min-width:650px}.tablewrap{overflow:au
 
 <script>
 const URL='https://qhsvvlcgwdmxxappplzh.supabase.co',KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO',TID='204a8f52-5525-4077-85e4-1d3811d68323';
-const sb=window.supabase.createClient(URL,KEY),$=id=>document.getElementById(id),colors=['Blue','Red','White','Green'];
+const sb=supabase.createClient(URL,KEY),$=id=>document.getElementById(id),colors=['Blue','Red','White','Green'];
 let events=[],current=null,teams=[],relayResults=[],ranking=[];
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const msg=(t,kind='')=>$('msg').innerHTML='<div class="message '+(kind==='good'?'goodmsg':kind==='bad'?'bad':'')+'">'+esc(t)+'</div>';
@@ -122,16 +122,32 @@ $('photoFinish').onclick=()=>{if(!current)return;if(!relayResults.length){msg('S
  location.href='../photo-finish-v2/?relay=1&event='+encodeURIComponent(current.id)+'&return='+encodeURIComponent(ret);
 };
 async function signIn(){
-  const email=$('email').value.trim(),password=$('password').value;
-  const btn=$('loginBtn');$('loginMsg').textContent='';
-  if(!email||!password){$('loginMsg').textContent='Enter email and password.';return}
-  btn.disabled=true;btn.textContent='Signing in…';
-  try{
-    const {data,error}=await sb.auth.signInWithPassword({email,password});
-    if(error)throw error;
-    if(!data?.session)throw new Error('Sign in completed but no session was returned.');
-    $('loginMsg').textContent='Signed in.';
-    await boot();
+  $('loginBtn').disabled=true;
+  $('loginMsg').textContent='';
+  const {error}=await sb.auth.signInWithPassword({
+    email:$('email').value.trim(),
+    password:$('password').value
+  });
+  $('loginBtn').disabled=false;
+  if(error){$('loginMsg').textContent=error.message;return}
+  await boot();
+}
+async function signOut(){await sb.auth.signOut();location.reload()}
+
+function wire(){
+  $('loginBtn').onclick=signIn;
+  $('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
+  $('logout').onclick=signOut;
+  $('category').onchange=refreshEvents;
+  $('gender').onchange=refreshEvents;
+  $('event').onchange=loadEvent;
+  $('saveLineup').onclick=saveLineup;
+  $('saveResults').onclick=saveResults;
+  $('refresh').onclick=loadEvent;
+}
+
+wire();
+boot();
   }catch(err){
     console.error('Relay sign in error',err);
     $('loginMsg').textContent=err.message||String(err);
