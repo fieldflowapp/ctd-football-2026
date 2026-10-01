@@ -25,6 +25,11 @@ button{border:0;border-radius:12px;padding:14px 10px;font-weight:900;font-size:1
 .primary{background:var(--green);color:#022016}.record{background:var(--red);color:#fff}.dark{background:#173247;color:#fff}.orange{background:var(--orange);color:#211100}.cameraBtn{background:var(--cyan);color:#002033}
 #cameraBtn{display:none}.status{text-align:center;font-size:12px;color:var(--muted);min-height:17px}
 .review{display:none}.review.show{display:grid}.reviewTime{text-align:center;font-size:30px;font-weight:900;font-variant-numeric:tabular-nums}
+.playbackRow{display:grid;grid-template-columns:64px minmax(0,1fr) 64px;gap:10px;align-items:center}
+.playbackRow .reviewTime{min-width:0}
+.playBtn,.pauseBtn{min-height:48px;padding:10px 8px;font-size:20px;border-radius:12px}
+.playBtn{background:var(--green);color:#022016}
+.pauseBtn{background:#173247;color:#fff}
 .slider{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}input[type=range]{width:100%}
 #assignPanel{display:none;border-top:1px solid #ffffff18;padding-top:9px}#assignPanel.show{display:block}.assignTitle{text-align:center;font-weight:900;margin-bottom:8px}
 .lanes{display:grid;grid-template-columns:1fr 1fr;gap:8px}.laneBtn{background:#102f44;color:#fff;text-align:left;border:1px solid #ffffff18}.laneBtn.saved{background:#153b31;border-color:var(--green)}
@@ -47,7 +52,11 @@ button{border:0;border-radius:12px;padding:14px 10px;font-weight:900;font-size:1
 </section>
 
 <section class="review" id="reviewPanel">
-<div class="reviewTime" id="reviewTime">00:00.000</div>
+<div class="playbackRow">
+  <button id="playVideoBtn" class="playBtn" type="button" aria-label="Play video">▶</button>
+  <div class="reviewTime" id="reviewTime">00:00.000</div>
+  <button id="pauseVideoBtn" class="pauseBtn" type="button" aria-label="Pause video">⏸</button>
+</div>
 <div class="slider"><span class="small">Inicio</span><input id="scrubber" type="range" min="0" max="1000" value="0"><span class="small">Fin</span></div>
 <div class="row3"><button class="dark" id="prevFrame">◀ FRAME</button><button class="orange" id="markFinish">MARK FINISH</button><button class="dark" id="nextFrame">FRAME ▶</button></div>
 <div id="assignPanel"><div class="assignTitle" id="assignTitle"></div><div class="lanes" id="laneButtons"></div></div>
@@ -68,7 +77,7 @@ document.addEventListener('DOMContentLoaded',()=> {
 const $=id=>document.getElementById(id);
 const camera=$('camera'),reviewVideo=$('reviewVideo'),timer=$('timer'),mode=$('mode'),status=$('status');
 const cameraBtn=$('cameraBtn'),startBtn=$('startBtn'),recordBtn=$('recordBtn'),stopBtn=$('stopBtn'),reviewBtn=$('reviewBtn'),backBtn=$('backBtn');
-const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubber'),prevFrame=$('prevFrame'),nextFrame=$('nextFrame'),markFinish=$('markFinish');
+const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubber'),prevFrame=$('prevFrame'),nextFrame=$('nextFrame'),markFinish=$('markFinish'),playVideoBtn=$('playVideoBtn'),pauseVideoBtn=$('pauseVideoBtn');
 const heatContext=$('heatContext'),assignPanel=$('assignPanel'),assignTitle=$('assignTitle'),laneButtons=$('laneButtons'),marksEl=$('marks'),saveResultsBtn=$('saveResultsBtn');
 
 let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[],stagedAssignments=new Map();
@@ -148,6 +157,22 @@ function updateReview(){
   if(reviewVideo.duration&&isFinite(reviewVideo.duration))scrubber.value=Math.round(reviewVideo.currentTime/reviewVideo.duration*1000);
 }
 reviewVideo.addEventListener('timeupdate',updateReview);reviewVideo.addEventListener('seeked',updateReview);reviewVideo.addEventListener('loadedmetadata',updateReview);
+playVideoBtn.addEventListener('click',async()=>{
+  try{
+    await reviewVideo.play();
+    mode.textContent='▶ PLAYING';
+  }catch(err){
+    status.textContent='No se pudo reproducir el video: '+(err.message||err);
+  }
+});
+pauseVideoBtn.addEventListener('click',()=>{
+  reviewVideo.pause();
+  updateReview();
+  mode.textContent='⏸ PAUSED';
+});
+reviewVideo.addEventListener('play',()=>{mode.textContent='▶ PLAYING'});
+reviewVideo.addEventListener('pause',()=>{if(reviewPanel.classList.contains('show'))mode.textContent='⏸ PAUSED'});
+
 scrubber.addEventListener('input',()=>{if(reviewVideo.duration&&isFinite(reviewVideo.duration)){reviewVideo.pause();reviewVideo.currentTime=Number(scrubber.value)/1000*reviewVideo.duration}});
 function step(dir){reviewVideo.pause();const fps=60;reviewVideo.currentTime=Math.min(Math.max(0,reviewVideo.currentTime+dir/fps),reviewVideo.duration||Infinity)}
 prevFrame.addEventListener('click',()=>step(-1));nextFrame.addEventListener('click',()=>step(1));
