@@ -10,7 +10,7 @@
 :root{--navy:#061722;--navy2:#071d2d;--cyan:#12c8ff;--green:#18d39e;--orange:#ff9f1c;--red:#ff4d4d;--muted:#9fb0bf}
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
 .app{min-height:100dvh;background:var(--navy);display:flex;flex-direction:column}
-header{padding:12px 14px;background:var(--navy2);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ffffff18}
+header{padding:10px 12px;background:var(--navy2);display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border-bottom:1px solid #ffffff18}.backBtn{background:#173247;color:#fff;padding:9px 11px;border-radius:10px;font-size:13px}.brand{text-align:center}
 .brand{font-weight:900}.brand span{color:var(--cyan)}.small{font-size:12px;color:var(--muted)}
 #heatContext{display:none;padding:9px 12px;background:#0a2b3f;border-bottom:1px solid #ffffff18;font-size:13px}#heatContext.show{display:block}
 main{flex:1;display:flex;flex-direction:column;min-height:0}.stage{position:relative;flex:1;min-height:330px;background:#000;overflow:hidden}
@@ -36,7 +36,7 @@ button{border:0;border-radius:12px;padding:14px 10px;font-weight:900;font-size:1
 </head>
 <body>
 <div class="app">
-<header><div class="brand">FieldFlow <span>Photo Finish</span></div><div class="small">V2</div></header>
+<header><button id="backBtn" class="backBtn">← BACK</button><div class="brand">FieldFlow <span>Photo Finish</span></div><div class="small">V2</div></header>
 <div id="heatContext"></div>
 <main>
 <section class="stage">
@@ -67,12 +67,12 @@ button{border:0;border-radius:12px;padding:14px 10px;font-weight:900;font-size:1
 document.addEventListener('DOMContentLoaded',()=> {
 const $=id=>document.getElementById(id);
 const camera=$('camera'),reviewVideo=$('reviewVideo'),timer=$('timer'),mode=$('mode'),status=$('status');
-const cameraBtn=$('cameraBtn'),startBtn=$('startBtn'),recordBtn=$('recordBtn'),stopBtn=$('stopBtn'),reviewBtn=$('reviewBtn');
+const cameraBtn=$('cameraBtn'),startBtn=$('startBtn'),recordBtn=$('recordBtn'),stopBtn=$('stopBtn'),reviewBtn=$('reviewBtn'),backBtn=$('backBtn');
 const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubber'),prevFrame=$('prevFrame'),nextFrame=$('nextFrame'),markFinish=$('markFinish');
 const heatContext=$('heatContext'),assignPanel=$('assignPanel'),assignTitle=$('assignTitle'),laneButtons=$('laneButtons'),marksEl=$('marks'),saveResultsBtn=$('saveResultsBtn');
 
 let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[],stagedAssignments=new Map();
-const params=new URLSearchParams(location.search),heatId=params.get('heat'),eventId=params.get('event');
+const params=new URLSearchParams(location.search),heatId=params.get('heat'),eventId=params.get('event'),returnUrl=params.get('return');
 const SUPABASE_URL='https://qhsvvlcgwdmxxappplzh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
@@ -232,6 +232,28 @@ saveResultsBtn.addEventListener('click',async()=>{
   }
 });
 function renderMarks(){marksEl.innerHTML=marks.slice().sort((a,b)=>a.time-b.time).map((m,i)=>'<div class="markRow"><span>'+(m.lane!=null?'Lane '+m.lane:'Lugar '+(i+1))+'</span><strong>'+fmt(m.time)+'</strong></div>').join('')}
+
+function closeCameraAndBack(){
+  try{
+    if(recorder&&recorder.state!=='inactive')recorder.stop();
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    camera.srcObject=null;
+  }catch(e){}
+  if(stagedAssignments.size>0){
+    const leave=confirm('Hay tiempos pendientes sin SAVE RESULTS. ¿Volver al heat igualmente?');
+    if(!leave)return;
+  }
+  if(returnUrl){
+    location.href=returnUrl;
+    return;
+  }
+  if(document.referrer&&document.referrer.includes('intercolour-athletics-2026-admin')){
+    location.href=document.referrer;
+    return;
+  }
+  history.back();
+}
+backBtn.addEventListener('click',closeCameraAndBack);
 
 loadHeat();
 openCamera();
