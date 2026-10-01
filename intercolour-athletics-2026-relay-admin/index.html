@@ -19,7 +19,7 @@ table{width:100%;border-collapse:collapse;min-width:650px}.tablewrap{overflow:au
 @media(max-width:780px){.shell{padding:8px}.grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}.cards{grid-template-columns:1fr}.toolbar{position:sticky;bottom:6px;z-index:10;background:#082231f5;padding:7px;border:1px solid var(--line);border-radius:12px}.toolbar .btn{flex:1 1 140px}select,input{min-height:46px;font-size:16px}}
 </style></head>
 <body>
-<div id="login" class="login"><div class="panel">
+<div id="login" class="login hidden"><div class="panel">
 <div class="brand" style="margin-bottom:16px"><div class="mark">FF</div><div><h1>Intercolour Athletics 2026</h1><div class="sub">Relay Admin</div></div></div>
 <div class="field"><label>Email</label><input id="email" type="email"></div><div class="field"><label>Password</label><input id="password" type="password"></div>
 <button class="btn primary" id="loginBtn">Sign in</button><div id="loginMsg"></div></div></div>
@@ -59,8 +59,13 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const msg=(t,kind='')=>$('msg').innerHTML='<div class="message '+(kind==='good'?'goodmsg':kind==='bad'?'bad':'')+'">'+esc(t)+'</div>';
 function fmt(v){if(v==null)return '';const n=Number(v),m=Math.floor(n/60),s=n-m*60;return m?m+':'+s.toFixed(2).padStart(5,'0'):s.toFixed(2)}
 function parseTime(v){v=String(v||'').trim();if(!v)return null;if(v.includes(':')){const [m,s]=v.split(':');return Number(m)*60+Number(s)}return Number(v)}
-async function boot(){
- const {data:{session}}=await sb.auth.getSession();if(!session)return;
+async function boot(sessionOverride=null){
+ const session=sessionOverride || (await sb.auth.getSession()).data.session;
+ if(!session){
+   $('app').classList.add('hidden');
+   $('login').classList.remove('hidden');
+   return;
+ }
  $('login').classList.add('hidden');$('app').classList.remove('hidden');$('user').textContent=session.user.email||'Admin';
  const q=await sb.from('athletics_events').select('*').eq('tournament_id',TID).eq('discipline','relay').order('sort_order');if(q.error){msg(q.error.message,'bad');return}
  events=q.data||[];$('category').innerHTML=['Y5','Y6','Y7','Y8','Intermediate','Senior'].map(x=>'<option>'+x+'</option>').join('');
@@ -147,5 +152,33 @@ function wire(){
 }
 
 wire();
-boot();
+
+let authBooted=false;
+async function initAuth(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    authBooted=true;
+    await boot(session);
+    return;
+  }
+  // Supabase can restore a persisted session just after page load.
+  // Keep the login hidden briefly and let INITIAL_SESSION/SIGNED_IN resolve it.
+  setTimeout(async()=>{
+    if(authBooted)return;
+    const {data:{session:lateSession}}=await sb.auth.getSession();
+    authBooted=true;
+    await boot(lateSession||null);
+  },250);
+}
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if((event==='INITIAL_SESSION'||event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session){
+    authBooted=true;
+    await boot(session);
+  }else if(event==='SIGNED_OUT'){
+    authBooted=true;
+    $('app').classList.add('hidden');
+    $('login').classList.remove('hidden');
+  }
+});
+initAuth();
 </script></body></html>
