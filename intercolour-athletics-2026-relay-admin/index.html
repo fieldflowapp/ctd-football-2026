@@ -148,21 +148,4 @@ function wire(){
 
 wire();
 boot();
-  }catch(err){
-    console.error('Relay sign in error',err);
-    $('loginMsg').textContent=err.message||String(err);
-  }finally{
-    btn.disabled=false;btn.textContent='Sign in';
-  }
-}
-$('loginBtn').onclick=signIn;
-$('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
-$('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
-$('category').onchange=refreshEvents;$('gender').onchange=refreshEvents;$('event').onchange=loadEvent;$('saveLineup').onclick=saveLineup;$('saveResults').onclick=saveResults;$('refresh').onclick=loadEvent;
-
-sb.auth.onAuthStateChange((event,session)=>{
-  if(event==='SIGNED_IN'&&session){$('login').classList.add('hidden');$('app').classList.remove('hidden')}
-  if(event==='SIGNED_OUT'){location.reload()}
-});
-boot();
 </script></body></html>
