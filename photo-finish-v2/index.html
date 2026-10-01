@@ -83,7 +83,7 @@ const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubb
 const heatContext=$('heatContext'),assignPanel=$('assignPanel'),assignTitle=$('assignTitle'),laneButtons=$('laneButtons'),marksEl=$('marks'),saveResultsBtn=$('saveResultsBtn');
 
 let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[],stagedAssignments=new Map(),targetVideoBitrate=16000000;
-const params=new URLSearchParams(location.search),heatId=params.get('heat'),eventId=params.get('event'),returnUrl=params.get('return');
+const params=new URLSearchParams(location.search),heatId=params.get('heat'),eventId=params.get('event'),returnUrl=params.get('return'),relayMode=params.get('relay')==='1';
 const SUPABASE_URL='https://qhsvvlcgwdmxxappplzh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
@@ -222,8 +222,19 @@ function step(dir){reviewVideo.pause();const fps=60;reviewVideo.currentTime=Math
 prevFrame.addEventListener('click',()=>step(-1));nextFrame.addEventListener('click',()=>step(1));
 
 async function loadHeat(){
-  if(!sb||!heatId)return;
+  if(!sb)return;
   try{
+    if(relayMode){
+      if(!eventId)return;
+      const {data:ev,error:ee}=await sb.from('athletics_events').select('*').eq('id',eventId).single();if(ee)throw ee;
+      const {data:rows,error:re}=await sb.from('athletics_relay_results').select('*').eq('event_id',eventId).order('lane');if(re)throw re;
+      const teamIds=(rows||[]).map(x=>x.relay_team_id).filter(Boolean);
+      let teams=[];if(teamIds.length){const q=await sb.from('athletics_relay_teams').select('*').in('id',teamIds);if(q.error)throw q.error;teams=q.data||[]}
+      heatEntries=(rows||[]).map(en=>({...en,relayColor:(teams.find(t=>t.id===en.relay_team_id)||{}).color||''}));
+      heatContext.innerHTML='<b>'+esc(ev.name)+'</b> · FINAL<br><span class="small">'+heatEntries.length+' relay teams · double points</span>';heatContext.classList.add('show');
+      renderLanes();return;
+    }
+    if(!heatId)return;
     const {data:h,error:he}=await sb.from('athletics_track_heats').select('*').eq('id',heatId).single();if(he)throw he;
     const {data:ev,error:ee}=await sb.from('athletics_events').select('*').eq('id',eventId||h.event_id).single();if(ee)throw ee;
     const {data:entries,error:xe}=await sb.from('athletics_track_entries').select('*').eq('heat_id',heatId).order('lane');if(xe)throw xe;
@@ -234,17 +245,17 @@ async function loadHeat(){
     heatEntries=(entries||[]).map(en=>{const reg=regs.find(r=>r.id===en.registration_id);const athlete=reg?athletes.find(a=>a.id===reg.athlete_id):null;return {...en,athlete}});
     heatContext.innerHTML='<b>'+esc(ev.name)+'</b> · Heat '+esc(h.heat_number)+'<br><span class="small">'+heatEntries.length+' athletes</span>';heatContext.classList.add('show');
     renderLanes();
-  }catch(err){heatContext.innerHTML='<span style="color:#ff9f1c">Heat error: '+esc(err.message||err)+'</span>';heatContext.classList.add('show')}
+  }catch(err){heatContext.innerHTML='<span style="color:#ff9f1c">Load error: '+esc(err.message||err)+'</span>';heatContext.classList.add('show')}
 }
 function renderLanes(){
   laneButtons.innerHTML=heatEntries.sort((a,b)=>(a.lane??999)-(b.lane??999)).map((en,i)=>{
-    const a=en.athlete||{},lane=en.lane??(i+1);
+    const a=en.athlete||{},lane=en.lane??(i+1),displayName=relayMode?('Relay '+(en.relayColor||'')):((a.last_name||'')+', '+(a.first_name||''));
     const staged=stagedAssignments.get(en.id);
     const saved=en.official_time!=null?Number(en.official_time).toFixed(3):'';
     const shown=staged!=null?Number(staged).toFixed(3):saved;
     const cls=staged!=null?'pendingTime':(saved?'saved':'');
     const label=staged!=null?'<span class="savedTime pendingTime">Pending: '+shown+' s</span>':(saved?'<span class="savedTime">Saved: '+saved+' s</span>':'');
-    return '<button class="laneBtn '+cls+'" data-entry="'+en.id+'"><span class="laneNo">Lane '+lane+'</span><span class="athlete">'+esc((a.last_name||'')+', '+(a.first_name||''))+'</span>'+label+'</button>'
+    return '<button class="laneBtn '+cls+'" data-entry="'+en.id+'"><span class="laneNo">Lane '+lane+'</span><span class="athlete">'+esc(displayName)+'</span>'+label+'</button>'
   }).join('');
   laneButtons.querySelectorAll('.laneBtn').forEach(b=>b.addEventListener('click',()=>stageLane(b.dataset.entry)));
   updateSaveButton();
@@ -280,8 +291,9 @@ saveResultsBtn.addEventListener('click',async()=>{
   status.textContent='Guardando resultados…';
   try{
     for(const [entryId,sec] of stagedAssignments.entries()){
-      const {error}=await sb.from('athletics_track_entries')
-        .update({official_time:sec,status:'finished'})
+      const table=relayMode?'athletics_relay_results':'athletics_track_entries';
+      const {error}=await sb.from(table)
+        .update({official_time:sec,status:'finished',updated_at:new Date().toISOString()})
         .eq('id',entryId);
       if(error)throw error;
       const en=heatEntries.find(x=>x.id===entryId);
@@ -340,9 +352,9 @@ function closeCameraAndBack(){
     return;
   }
 
-  const fallback='../intercolour-athletics-2026-admin/?event='+
-    encodeURIComponent(eventId||'')+'&tab=results&heat='+encodeURIComponent(heatId||'')+
-    (heatId?'#heat-'+encodeURIComponent(heatId):'');
+  const fallback=relayMode
+    ? '../intercolour-athletics-2026-relay-admin/?event='+encodeURIComponent(eventId||'')
+    : '../intercolour-athletics-2026-admin/?event='+encodeURIComponent(eventId||'')+'&tab=results&heat='+encodeURIComponent(heatId||'')+(heatId?'#heat-'+encodeURIComponent(heatId):'');
   location.replace(fallback);
 }
 backBtn.addEventListener('click',closeCameraAndBack);
