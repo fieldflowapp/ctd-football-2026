@@ -1,10 +1,10 @@
 {
-  "id": "./",
+  "id": "/ctd-football-2026/absch-football-2026/",
   "name": "ABSCH Football 2026",
   "short_name": "ABSCH Football",
   "description": "Official ABSCH Football 2026 tournament - 7th Grade & Junior",
-  "start_url": "./?source=pwa",
-  "scope": "./",
+  "start_url": "/ctd-football-2026/absch-football-2026/?source=pwa-public",
+  "scope": "/ctd-football-2026/absch-football-2026/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#FFFFFF",
