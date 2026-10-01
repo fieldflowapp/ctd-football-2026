@@ -234,24 +234,47 @@ saveResultsBtn.addEventListener('click',async()=>{
 function renderMarks(){marksEl.innerHTML=marks.slice().sort((a,b)=>a.time-b.time).map((m,i)=>'<div class="markRow"><span>'+(m.lane!=null?'Lane '+m.lane:'Lugar '+(i+1))+'</span><strong>'+fmt(m.time)+'</strong></div>').join('')}
 
 function closeCameraAndBack(){
-  try{
-    if(recorder&&recorder.state!=='inactive')recorder.stop();
-    if(stream)stream.getTracks().forEach(t=>t.stop());
-    camera.srcObject=null;
-  }catch(e){}
   if(stagedAssignments.size>0){
     const leave=confirm('Hay tiempos pendientes sin SAVE RESULTS. ¿Volver al heat igualmente?');
     if(!leave)return;
   }
-  if(returnUrl){
-    location.href=returnUrl;
+
+  try{
+    if(recorder&&recorder.state!=='inactive'){
+      recorder.onstop=null;
+      recorder.stop();
+    }
+  }catch(e){}
+
+  try{
+    if(stream){
+      stream.getTracks().forEach(track=>{
+        try{track.stop()}catch(e){}
+      });
+      stream=null;
+    }
+    camera.pause();
+    camera.srcObject=null;
+  }catch(e){}
+
+  let target=returnUrl;
+  if(target){
+    if(target.startsWith('./?')){
+      target='../intercolour-athletics-2026-admin/'+target.slice(1);
+    }
+    location.replace(target);
     return;
   }
+
   if(document.referrer&&document.referrer.includes('intercolour-athletics-2026-admin')){
-    location.href=document.referrer;
+    location.replace(document.referrer);
     return;
   }
-  history.back();
+
+  const fallback='../intercolour-athletics-2026-admin/?event='+
+    encodeURIComponent(eventId||'')+'&tab=results&heat='+encodeURIComponent(heatId||'')+
+    (heatId?'#heat-'+encodeURIComponent(heatId):'');
+  location.replace(fallback);
 }
 backBtn.addEventListener('click',closeCameraAndBack);
 
