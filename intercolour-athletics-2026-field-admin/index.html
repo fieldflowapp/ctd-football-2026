@@ -302,15 +302,15 @@ async function reloadData(){
 }
 function renderAll(){renderStatus();renderRegistrations();renderSheet();renderRanking()}
 function renderStatus(){
-  const max=state.currentEvent?.max_entries_per_color||0,counts={Blue:0,Red:0,White:0,Green:0};
+  const counts={Blue:0,Red:0,White:0,Green:0};
   state.registrations.filter(r=>r.status==='registered').forEach(r=>{const a=state.athletes.find(x=>x.id===r.athlete_id);if(a)counts[a.color]++});
-  $('quickStatus').innerHTML=['Blue','Red','White','Green'].map(c=>'<div class="message">'+colorDot(c)+' <b>'+counts[c]+'</b> / '+max+'</div>').join('');
+  $('quickStatus').innerHTML=['Blue','Red','White','Green'].map(c=>'<div class="message">'+colorDot(c)+' <b>'+counts[c]+'</b> registered · unlimited</div>').join('');
 }
 function regSet(){return new Set(state.registrations.filter(r=>r.status==='registered').map(r=>r.athlete_id))}
 function renderRegistrations(){
   const p=$('registrationsPane'),e=state.currentEvent;if(!e){p.innerHTML='<div class="empty">Select an event.</div>';return}
   const colour=$('colour').value,visible=colour==='All'?state.athletes:state.athletes.filter(a=>a.color===colour),reg=regSet();
-  p.innerHTML='<div class="toolbar"><button class="btn primary" id="saveRegs">Save changes</button><span class="muted">Maximum '+e.max_entries_per_color+' athletes per colour.</span></div>'+
+  p.innerHTML='<div class="toolbar"><button class="btn primary" id="saveRegs">Save changes</button><span class="muted">TEST MODE: unlimited athletes per colour and event.</span></div>'+
   '<div class="tablewrap"><table><thead><tr><th>In</th><th>Athlete</th><th>Colour</th><th>Category</th></tr></thead><tbody>'+
   visible.map(a=>'<tr><td><input style="width:auto" type="checkbox" class="regcb" data-id="'+a.id+'" '+(reg.has(a.id)?'checked':'')+'></td><td><b>'+esc(a.last_name)+', '+esc(a.first_name)+'</b><br><span class="muted">'+esc(a.external_code)+'</span></td><td>'+colorDot(a.color)+'</td><td>'+esc(a.level)+' · '+genderName(a.gender)+'</td></tr>').join('')+
   '</tbody></table></div><div id="regMsg"></div>';
