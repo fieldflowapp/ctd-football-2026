@@ -101,7 +101,7 @@
 
 <div id="appView" class="shell hidden">
   <div class="topbar">
-    <div><div class="brand"><div class="mark">FF</div><div><h1>Intercolour Athletics 2026</h1><div class="sub">Operational Track Console</div></div></div><div style="display:flex;gap:7px;margin-top:8px"><a href="./" style="color:#fff;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800;background:#0b5fff">Track</a><a href="../intercolour-athletics-2026-field-admin/" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Field</a><a href="../intercolour-athletics-2026-relay-admin/" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Relays</a><a href="../intercolour-athletics-2026-scoreboard/" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Scoreboard</a><a id="printLink" href="../intercolour-athletics-2026-print/" target="_blank" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Print</a></div></div>
+    <div><div class="brand"><div class="mark">FF</div><div><h1>Intercolour Athletics 2026</h1><div class="sub">Operational Track Console</div></div></div><div style="display:flex;gap:7px;margin-top:8px"><a href="./" style="color:#fff;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800;background:#0b5fff">Track</a><a href="../intercolour-athletics-2026-field-admin/" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Field</a><a href="../intercolour-athletics-2026-scoreboard/" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Scoreboard</a><a id="printLink" href="../intercolour-athletics-2026-print/" target="_blank" style="color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:800">Print</a></div></div>
     <div class="flex"><span id="userPill" class="pill"></span><button class="btn ghost mini" id="logoutBtn">Logout</button></div>
   </div>
 
@@ -166,7 +166,7 @@ const TOURNAMENT_SLUG='intercolour-athletics-2026';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const $=id=>document.getElementById(id);
-const state={tournament:null,events:[],athletes:[],registrations:[],heats:[],entries:[],tab:'registrations',currentEvent:null};
+const state={tournament:null,events:[],athletes:[],registrations:[],heats:[],entries:[],relayTeams:[],relayResults:[],relayRanking:[],tab:'registrations',currentEvent:null};
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function colorDot(c){return '<span class="color-dot '+esc(c)+'"></span>'+esc(c)}
@@ -206,7 +206,10 @@ function readTimeFromRow(row,prefix,e){
   return Number((min*60+sec+cs/100).toFixed(2));
 }
 function msg(el,text,type=''){el.innerHTML='<div class="message '+type+'">'+esc(text)+'</div>'}
-function eventLabel(e){return e.name+(e.has_final?' · Final '+(e.finalists_count||8):' · Timed heats')}
+function eventLabel(e){
+  if(e.discipline==='relay')return e.name+' · Final only';
+  return e.name+(e.has_final?' · Final '+(e.finalists_count||8):' · Timed heats');
+}
 function currentEvent(){return state.events.find(e=>e.id===$('event').value)||null}
 function recordBanner(e){
   if(!e?.record_value)return '<div class="record-card"><b>RECORD:</b> <span class="muted">No record listed in Intercolour Records 2023.</span></div>';
@@ -246,7 +249,7 @@ async function saveNewAthlete(){
       level,gender,color,active:true,source_batch:'manual_admin'
     }).select().single();
     if(error) throw error;
-    if($('newRegisterCurrent').checked && state.currentEvent && state.currentEvent.category===level && state.currentEvent.gender===gender){
+    if($('newRegisterCurrent').checked && state.currentEvent && state.currentEvent.discipline!=='relay' && state.currentEvent.category===level && state.currentEvent.gender===gender){
       const {error:re}=await sb.from('athletics_registrations').insert({
         tournament_id:state.tournament.id,event_id:state.currentEvent.id,athlete_id:ath.id,status:'registered'
       });
@@ -275,7 +278,7 @@ async function boot(){
   if(te){alert('Unable to load tournament: '+te.message);return}
   state.tournament=t;
 
-  const {data:e,error:ee}=await sb.from('athletics_events').select('*').eq('tournament_id',t.id).eq('discipline','track').order('sort_order');
+  const {data:e,error:ee}=await sb.from('athletics_events').select('*').eq('tournament_id',t.id).in('discipline',['track','relay']).order('sort_order');
   if(ee){alert('Access denied or events unavailable: '+ee.message);return}
   state.events=e||[];
 
@@ -340,11 +343,28 @@ async function loadEvent(){
   state.currentEvent=currentEvent();
   if(!state.currentEvent){renderAll();return}
   const e=state.currentEvent;
-  $('eventInfo').innerHTML='<b>'+esc(e.name)+'</b><br><span class="muted">'+esc(e.category)+' · '+genderName(e.gender)+' · '+(e.start_mode==='mass_start'?'Mass start':'8 lanes')+' · '+(e.has_final?'Top '+(e.finalists_count||8)+' → Final':'Top 8 overall → Points')+'</span>'+recordBanner(e);
+  $('eventInfo').innerHTML='<b>'+esc(e.name)+'</b><br><span class="muted">'+esc(e.category)+' · '+genderName(e.gender)+' · '+(e.discipline==='relay'?'Relay · Final only · Double points':((e.start_mode==='mass_start'?'Mass start':'8 lanes')+' · '+(e.has_final?'Top '+(e.finalists_count||8)+' → Final':'Top 8 overall → Points')))+'</span>'+recordBanner(e);
   await reloadData();
 }
 async function reloadData(){
   const e=state.currentEvent;if(!e)return;
+
+  state.athletes=[];state.registrations=[];state.heats=[];state.entries=[];
+  state.relayTeams=[];state.relayResults=[];state.relayRanking=[];
+
+  if(e.discipline==='relay'){
+    const [t,r,k]=await Promise.all([
+      sb.from('athletics_relay_teams').select('*').eq('event_id',e.id),
+      sb.from('athletics_relay_results').select('*').eq('event_id',e.id).order('lane'),
+      sb.from('athletics_relay_ranking').select('*').eq('event_id',e.id).order('place')
+    ]);
+    if(t.error||r.error||k.error){alert((t.error||r.error||k.error).message);return}
+    state.relayTeams=t.data||[];
+    state.relayResults=r.data||[];
+    state.relayRanking=k.data||[];
+    renderAll();return;
+  }
+
   const [a,r,h]=await Promise.all([
     sb.from('athletics_athletes').select('*').eq('tournament_id',state.tournament.id).eq('level',e.category).eq('gender',e.gender).eq('active',true).order('color').order('last_name'),
     sb.from('athletics_registrations').select('*').eq('event_id',e.id).order('created_at'),
@@ -360,16 +380,143 @@ async function reloadData(){
   }else state.entries=[];
   renderAll();
 }
-function renderAll(){renderSidebar();const pl=$('printLink');if(pl&&state.currentEvent)pl.href='../intercolour-athletics-2026-print/?event='+encodeURIComponent(state.currentEvent.id);renderRegistrations();renderSeries();renderResults();renderFinal()}
+function renderAll(){
+  renderSidebar();
+  const pl=$('printLink');
+  if(pl&&state.currentEvent)pl.href='../intercolour-athletics-2026-print/?event='+encodeURIComponent(state.currentEvent.id);
+  if(state.currentEvent?.discipline==='relay'){
+    renderRelaySetup();renderRelaySeries();renderRelayResults();renderRelayFinal();
+  }else{
+    renderRegistrations();renderSeries();renderResults();renderFinal();
+  }
+}
 
 function renderSidebar(){
   const e=state.currentEvent;if(!e){$('sidebarStatus').innerHTML='';return}
+  if(e.discipline==='relay'){
+    const finished=state.relayResults.filter(x=>x.status==='finished').length;
+    $('sidebarStatus').innerHTML=
+      '<div class="message"><b>'+state.relayResults.length+'</b> relay team(s)</div>'+
+      '<div class="message"><b>'+finished+'</b> finished</div>'+
+      '<div class="message"><b>Scoring:</b> double points</div>';
+    return;
+  }
   const heats=state.heats.filter(h=>h.stage==='heat'), completed=heats.filter(h=>h.status==='completed').length;
   const final=state.heats.find(h=>h.stage==='final');
   $('sidebarStatus').innerHTML=
     '<div class="message"><b>'+state.registrations.length+'</b> registered athletes</div>'+
     '<div class="message"><b>'+heats.length+'</b> heat(s) · '+completed+' completed</div>'+
     '<div class="message"><b>Final:</b> '+(e.has_final?(final?esc(final.status):'not created'):'not required')+'</div>';
+}
+
+function relayTeamForColor(color){return state.relayTeams.find(t=>t.color===color)||null}
+function relayResultForColor(color){
+  const t=relayTeamForColor(color);return t?state.relayResults.find(r=>r.relay_team_id===t.id)||null:null
+}
+function relayColorForResult(rr){
+  return state.relayTeams.find(t=>t.id===rr.relay_team_id)?.color||'';
+}
+function relayTimeInput(rr){
+  return splitTimeInput('relay',rr?.official_time??null);
+}
+function renderRelaySetup(){
+  const pane=$('registrationsPane'),e=state.currentEvent;if(!e)return;
+  const colors=['Blue','Red','White','Green'];
+  pane.innerHTML=recordBanner(e)+
+    '<div class="message"><b>Relay final only.</b> Select the colours that will run and assign one lane to each. Relay scoring is double.</div>'+
+    '<div class="statrow">'+colors.map(c=>{
+      const rr=relayResultForColor(c);
+      return '<div class="stat"><b>'+colorDot(c)+'</b><span>'+(rr?'Lane '+rr.lane:'Not entered')+'</span></div>';
+    }).join('')+'</div>'+
+    '<div class="tablewrap"><table><thead><tr><th>Run</th><th>Colour</th><th>Lane</th></tr></thead><tbody>'+
+    colors.map((color,i)=>{
+      const rr=relayResultForColor(color);
+      return '<tr><td><input style="width:auto" type="checkbox" class="relayPick" data-color="'+color+'" '+(rr?'checked':'')+'></td>'+
+      '<td>'+colorDot(color)+'</td><td><select class="relayLane" data-color="'+color+'">'+
+      [1,2,3,4,5,6,7,8].map(n=>'<option value="'+n+'" '+((rr?.lane||(i+1))===n?'selected':'')+'>'+n+'</option>').join('')+
+      '</select></td></tr>';
+    }).join('')+
+    '</tbody></table></div><div class="toolbar" style="margin-top:10px"><button class="btn primary" id="saveRelaySetup">Save relay final</button></div><div id="regMsg"></div>';
+  $('saveRelaySetup').onclick=saveRelaySetup;
+}
+async function saveRelaySetup(){
+  const e=state.currentEvent;
+  const picked=[...document.querySelectorAll('.relayPick:checked')].map(x=>x.dataset.color);
+  if(!picked.length){msg($('regMsg'),'Select at least one colour.','bad');return}
+  const lanes=picked.map(c=>Number(document.querySelector('.relayLane[data-color="'+c+'"]').value));
+  if(new Set(lanes).size!==lanes.length){msg($('regMsg'),'Each colour needs a different lane.','bad');return}
+  if(state.relayResults.some(x=>x.official_time!=null)&&!confirm('Changing the relay setup will reset current relay times. Continue?'))return;
+
+  for(const color of picked){
+    let team=relayTeamForColor(color);
+    if(!team){
+      const q=await sb.from('athletics_relay_teams').insert({
+        tournament_id:state.tournament.id,event_id:e.id,color,status:'registered'
+      }).select().single();
+      if(q.error){msg($('regMsg'),q.error.message,'bad');return}
+      team=q.data;state.relayTeams.push(team);
+    }else if(team.status!=='registered'){
+      const q=await sb.from('athletics_relay_teams').update({status:'registered'}).eq('id',team.id);
+      if(q.error){msg($('regMsg'),q.error.message,'bad');return}
+    }
+  }
+
+  const del=await sb.from('athletics_relay_results').delete().eq('event_id',e.id);
+  if(del.error){msg($('regMsg'),del.error.message,'bad');return}
+
+  const rows=picked.map(color=>({
+    tournament_id:state.tournament.id,
+    event_id:e.id,
+    relay_team_id:relayTeamForColor(color).id,
+    lane:Number(document.querySelector('.relayLane[data-color="'+color+'"]').value),
+    status:'scheduled'
+  }));
+  const ins=await sb.from('athletics_relay_results').insert(rows);
+  if(ins.error){msg($('regMsg'),ins.error.message,'bad');return}
+  await reloadData();msg($('regMsg'),'Relay final saved.','good');
+}
+function renderRelaySeries(){
+  const pane=$('seriesPane'),e=state.currentEvent;if(!e)return;
+  const rows=state.relayResults.slice().sort((a,b)=>a.lane-b.lane);
+  pane.innerHTML=recordBanner(e)+
+    '<div class="message"><b>Final only.</b> Relays do not use heats. The lane assignment below is the official start list.</div>'+
+    (rows.length?'<div class="heat"><div class="heathead"><b>FINAL · '+esc(e.name)+'</b><span class="badge">scheduled</span></div><div class="heatbody"><div class="tablewrap"><table><thead><tr><th>Lane</th><th>Colour</th></tr></thead><tbody>'+
+    rows.map(rr=>'<tr><td class="lane">'+rr.lane+'</td><td>'+colorDot(relayColorForResult(rr))+'</td></tr>').join('')+
+    '</tbody></table></div></div></div>':'<div class="empty">Set colours and lanes in Registration first.</div>');
+}
+function renderRelayResults(){
+  const pane=$('resultsPane'),e=state.currentEvent;if(!e)return;
+  const rows=state.relayResults.slice().sort((a,b)=>a.lane-b.lane);
+  if(!rows.length){pane.innerHTML='<div class="empty">Set colours and lanes first.</div>';return}
+  pane.innerHTML=recordBanner(e)+
+    '<div class="toolbar"><a class="btn primary" href="../photo-finish-v2/?relay=1&event='+encodeURIComponent(e.id)+'&return='+encodeURIComponent('../intercolour-athletics-2026-admin/?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=results')+'">📷 Photo Finish</a><button class="btn good" id="saveRelayResults">Save results</button></div>'+
+    '<div class="message">Enter the official relay time or use Photo Finish. Points are calculated automatically at ×2.</div><div id="resultMsg"></div>'+
+    '<div class="tablewrap"><table><thead><tr><th>Lane</th><th>Colour</th><th>Status</th><th>Official time</th></tr></thead><tbody>'+
+    rows.map(rr=>'<tr data-relay-result="'+rr.id+'"><td class="lane">'+rr.lane+'</td><td>'+colorDot(relayColorForResult(rr))+'</td><td><select class="relayStatus"><option value="scheduled" '+(rr.status==='scheduled'?'selected':'')+'>Scheduled</option><option value="finished" '+(rr.status==='finished'?'selected':'')+'>Finished</option><option value="dns" '+(rr.status==='dns'?'selected':'')+'>DNS</option><option value="dnf" '+(rr.status==='dnf'?'selected':'')+'>DNF</option><option value="dq" '+(rr.status==='dq'?'selected':'')+'>DQ</option></select></td><td>'+relayTimeInput(rr)+'</td></tr>').join('')+
+    '</tbody></table></div>';
+  $('saveRelayResults').onclick=saveRelayResults;
+}
+async function saveRelayResults(){
+  for(const row of document.querySelectorAll('[data-relay-result]')){
+    const id=row.dataset.relayResult,status=row.querySelector('.relayStatus').value;
+    const official_time=readTimeFromRow(row,'relay',state.currentEvent);
+    if(Number.isNaN(official_time)){msg($('resultMsg'),'Invalid relay time.','bad');return}
+    if(status==='finished'&&official_time===null){msg($('resultMsg'),'A finished relay needs an official time.','bad');return}
+    const q=await sb.from('athletics_relay_results').update({
+      status,official_time:status==='finished'?official_time:null,updated_at:new Date().toISOString()
+    }).eq('id',id);
+    if(q.error){msg($('resultMsg'),q.error.message,'bad');return}
+  }
+  await reloadData();msg($('resultMsg'),'Relay results saved. Double points recalculated.','good');
+}
+function renderRelayFinal(){
+  const pane=$('finalPane'),e=state.currentEvent;if(!e)return;
+  const rank=state.relayRanking||[];
+  pane.innerHTML=recordBanner(e)+
+    '<div class="message"><b>Official relay ranking · double points.</b></div>'+
+    (rank.length?'<div class="tablewrap"><table><thead><tr><th>Place</th><th>Colour</th><th>Lane</th><th>Time</th><th>Points</th></tr></thead><tbody>'+
+      rank.map(x=>'<tr><td><b>'+x.place+'</b></td><td>'+colorDot(x.color)+'</td><td>'+x.lane+'</td><td><b>'+fmtTime(x.official_time,e)+'</b></td><td><b>'+Number(x.points||0).toFixed(0)+'</b></td></tr>').join('')+
+      '</tbody></table></div>':'<div class="empty">No relay result yet.</div>');
 }
 function regByAthlete(){const s=new Set(state.registrations.filter(r=>r.status==='registered').map(r=>r.athlete_id));return s}
 function renderRegistrations(){
