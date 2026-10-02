@@ -224,6 +224,9 @@ window.closeM=()=>{$('modal').innerHTML=''};const ni=v=>v===''?null:Math.max(0,p
 window.saveMatch=async id=>{
  const old=D.matches.find(x=>x.id===id);if(!old)return;
  const resultPayload={p_match_id:id,p_status:$('ms').value,p_home_score:ni($('mhsco').value),p_away_score:ni($('masco').value),p_home_yellow:ni($('mhy').value)||0,p_away_yellow:ni($('may').value)||0,p_home_red:ni($('mhr').value)||0,p_away_red:ni($('mar').value)||0,p_referee_name:$('mr').value.trim(),p_notes:$('mn').value.trim()};
+ if(old.stage==='semifinal'&&resultPayload.p_status==='finished'&&resultPayload.p_home_score!=null&&resultPayload.p_away_score!=null&&resultPayload.p_home_score===resultPayload.p_away_score){
+   toast('Semifinal requires a winner. Resolve the tie before marking Finished.',true);return;
+ }
  try{
    if(USER_ROLE==='owner'){
      const p={start_time:$('mt').value+':00',field_number:Number($('mf').value),venue_name:$('mv').value.trim(),status:$('ms').value,home_entry_id:$('mh').value||null,away_entry_id:$('ma').value||null,home_source:$('mhs').value.trim()||null,away_source:$('mas').value.trim()||null,home_score:resultPayload.p_home_score,away_score:resultPayload.p_away_score,home_yellow:resultPayload.p_home_yellow,away_yellow:resultPayload.p_away_yellow,home_red:resultPayload.p_home_red,away_red:resultPayload.p_away_red,referee_name:resultPayload.p_referee_name||null,notes:resultPayload.p_notes||null,updated_at:new Date().toISOString()};
