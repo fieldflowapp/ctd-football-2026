@@ -1,15 +1,20 @@
-const CACHE='fieldflow-athletics-admin-v8';
-const SHELL=['./manifest-v8.webmanifest','./icons/icon-192.png','./icons/icon-512.jpg','./icons/maskable-icon-512.jpg'];
+const CACHE='fieldflow-athletics-stable-shell-v1';
+const STATIC_SHELL=[
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.jpg',
+  './icons/maskable-icon-512.jpg'
+];
 
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)));
+  event.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC_SHELL)));
   self.skipWaiting();
 });
 
 self.addEventListener('activate',event=>{
   event.waitUntil(
     caches.keys().then(keys=>Promise.all(
-      keys.filter(k=>k.startsWith('fieldflow-athletics-admin-')&&k!==CACHE).map(k=>caches.delete(k))
+      keys.filter(k=>k.startsWith('fieldflow-athletics-')&&k!==CACHE).map(k=>caches.delete(k))
     ))
   );
   self.clients.claim();
@@ -24,7 +29,7 @@ self.addEventListener('fetch',event=>{
   const u=new URL(event.request.url);
   if(u.origin!==location.origin)return;
 
-  if(event.request.mode==='navigate'){
+  if(event.request.mode==='navigate' || /\/version\.json$/.test(u.pathname) || /\/manifest\.webmanifest$/.test(u.pathname)){
     event.respondWith(
       fetch(event.request,{cache:'no-store'}).catch(()=>caches.match(event.request))
     );
@@ -32,9 +37,11 @@ self.addEventListener('fetch',event=>{
   }
 
   event.respondWith(
-    fetch(event.request).then(r=>{
-      const copy=r.clone();
-      caches.open(CACHE).then(c=>c.put(event.request,copy));
+    fetch(event.request,{cache:'no-cache'}).then(r=>{
+      if(r&&r.ok){
+        const copy=r.clone();
+        caches.open(CACHE).then(c=>c.put(event.request,copy));
+      }
       return r;
     }).catch(()=>caches.match(event.request))
   );
