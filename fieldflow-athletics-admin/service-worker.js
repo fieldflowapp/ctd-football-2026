@@ -1,5 +1,5 @@
-const CACHE='fieldflow-athletics-admin-v7';
-const SHELL=['./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.jpg','./icons/maskable-icon-512.jpg'];
+const CACHE='fieldflow-athletics-admin-v8';
+const SHELL=['./manifest-v8.webmanifest','./icons/icon-192.png','./icons/icon-512.jpg','./icons/maskable-icon-512.jpg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)));
