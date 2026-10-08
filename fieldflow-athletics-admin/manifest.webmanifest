@@ -28,12 +28,13 @@
       "purpose": "maskable"
     }
   ],
-  "id": "/ctd-football-2026/fieldflow-athletics-admin/",
+  "id": "/ctd-football-2026/fieldflow-athletics-admin-pwa",
   "display_override": [
     "standalone",
     "minimal-ui"
   ],
   "launch_handler": {
     "client_mode": "navigate-existing"
-  }
+  },
+  "prefer_related_applications": false
 }
