@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#061722">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>FieldFlow Photo Finish V2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--navy:#061722;--navy2:#071d2d;--cyan:#12c8ff;--green:#18d39e;--orange:#ff9f1c;--red:#ff4d4d;--muted:#9fb0bf}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none}
+button,select,input{font:inherit}
+button{border:0;border-radius:11px;font-weight:900;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+button:disabled{opacity:.35}
+.app{height:100dvh;max-height:100dvh;overflow:hidden;background:var(--navy);display:flex;flex-direction:column;position:relative}
+header{flex:0 0 auto;min-height:48px;padding:7px 9px;background:var(--navy2);display:grid;grid-template-columns:72px 1fr 28px;gap:7px;align-items:center;border-bottom:1px solid #ffffff18}
+.backBtn{background:#173247;color:#fff;padding:8px 7px;font-size:12px;min-height:36px}
+.brand{text-align:center;font-weight:900;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand span{color:var(--cyan)}
+.small{font-size:11px;color:var(--muted)}
+#heatContext{display:none;flex:0 0 auto;padding:5px 9px;background:#0a2b3f;border-bottom:1px solid #ffffff18;font-size:11px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#heatContext.show{display:block}
+#heatContext br{display:none}
+main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.stage{position:relative;flex:1 1 auto;min-height:0;background:#000;overflow:hidden}
+video{width:100%;height:100%;object-fit:cover;background:#000;touch-action:none}
+#reviewVideo{display:none}
+.finish-line{position:absolute;top:0;bottom:0;left:50%;width:3px;background:var(--red);box-shadow:0 0 12px var(--red);pointer-events:none}
+.finish-line:after{content:"META";position:absolute;top:7px;left:7px;font-size:10px;font-weight:900;background:#ff4d4dcc;padding:3px 5px;border-radius:5px}
+.timerbox{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:#000b;padding:5px 10px;border-radius:10px;text-align:center;white-space:nowrap}
+#timer{font-size:27px;font-weight:900;font-variant-numeric:tabular-nums}.mode{font-size:10px;color:#ddd;margin-top:1px}
+.controls{flex:0 0 auto;background:var(--navy2);padding:7px 9px calc(7px + env(safe-area-inset-bottom));display:grid;gap:6px}
+.review{display:none;flex:0 0 auto;background:var(--navy2);padding:7px 9px calc(7px + env(safe-area-inset-bottom));gap:6px;border-top:1px solid #ffffff18}
+.review.show{display:grid}
+.app.reviewMode .controls{display:none}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:6px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.primary,.record,.dark,.orange,.cameraBtn{min-height:42px;padding:9px 7px;font-size:13px}
+.primary{background:var(--green);color:#022016}.record{background:var(--red);color:#fff}.dark{background:#173247;color:#fff}.orange{background:var(--orange);color:#211100}.cameraBtn{background:var(--cyan);color:#002033}
+#cameraBtn{display:none}.status{text-align:center;font-size:10px;color:var(--muted);min-height:12px;line-height:1.15}
+.captureMeta{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+.qualityBadge{display:none;text-align:left;font-size:10px;color:#d9f7ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qualityBadge.show{display:block}
+.captureSettings{display:grid;grid-template-columns:auto 1fr;gap:5px;align-items:center}
+.captureSettings label{font-size:10px;color:#d9f7ff;font-weight:800}
+.captureSettings select{width:128px;background:#061c2a;border:1px solid #21465a;color:#fff;border-radius:8px;padding:7px 6px;font-size:12px}
+.playbackRow{display:grid;grid-template-columns:52px minmax(0,1fr) 52px;gap:7px;align-items:center}
+.reviewTime{text-align:center;font-size:25px;font-weight:900;font-variant-numeric:tabular-nums;min-width:0}
+.playBtn,.pauseBtn{min-height:42px;padding:7px;font-size:18px;border-radius:10px;touch-action:manipulation}
+.playBtn{background:var(--green);color:#022016}.pauseBtn{background:#173247;color:#fff}
+.slider{display:grid;grid-template-columns:30px 1fr 22px;gap:5px;align-items:center}
+.slider .small{font-size:9px}
+input[type=range]{width:100%;margin:0;touch-action:pan-x}
+#prevFrame,#markFinish,#nextFrame{min-height:44px;padding:7px 4px;font-size:12px;touch-action:manipulation}
+#assignPanel{display:none;position:absolute;z-index:50;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));background:#071d2df7;border:1px solid #285067;border-radius:14px;padding:10px;box-shadow:0 10px 40px #000b}
+#assignPanel.show{display:block}
+.assignTitle{text-align:center;font-weight:900;font-size:13px;margin-bottom:7px}
+.lanes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.laneBtn{background:#102f44;color:#fff;text-align:left;border:1px solid #ffffff18;padding:8px 9px;min-height:48px;touch-action:manipulation}
+.laneBtn.saved{background:#153b31;border-color:var(--green)}
+.laneNo{font-size:14px;color:var(--cyan);font-weight:900}.athlete{display:block;font-size:9px;color:#d8e2e9;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.savedTime{display:block;font-size:10px;color:#7cf0bf;margin-top:2px}
+.pendingTime{color:var(--orange)!important}
+.marks{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;max-height:none;overflow:hidden;border-top:1px solid #ffffff18;padding-top:4px}
+.markRow{display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:10px;min-width:0}
+.markRow strong{font-variant-numeric:tabular-nums}
+.saveResults{display:none;background:var(--green);color:#022016;font-size:14px;min-height:42px;padding:8px 10px}
+.saveResults.show{display:block}
+@media(max-height:700px){
+  header{min-height:42px;padding:5px 7px}
+  .backBtn{min-height:32px;padding:6px;font-size:11px}
+  #heatContext{padding:3px 7px;font-size:10px}
+  .controls,.review{padding:5px 7px calc(5px + env(safe-area-inset-bottom));gap:4px}
+  .primary,.record,.dark,.orange,.cameraBtn{min-height:38px;padding:7px 5px}
+  #timer{font-size:23px}.timerbox{bottom:7px;padding:4px 8px}
+  .playbackRow{grid-template-columns:46px 1fr 46px;gap:5px}.playBtn,.pauseBtn{min-height:38px}
+  .reviewTime{font-size:22px}
+  #prevFrame,#markFinish,#nextFrame{min-height:40px;font-size:11px}
+  .saveResults{min-height:38px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header><button id="backBtn" class="backBtn">← BACK</button><div class="brand">FieldFlow <span>Photo Finish</span></div><div class="small">V4</div></header>
+<div id="heatContext"></div>
+<main>
+<section class="stage">
+<video id="camera" autoplay playsinline muted></video>
+<video id="reviewVideo" playsinline muted></video>
+<div class="finish-line"></div>
+<div class="timerbox"><div id="timer">00:00.000</div><div class="mode" id="mode">Preparando cámara…</div></div>
+</section>
+
+<section class="review" id="reviewPanel">
+<div class="playbackRow">
+  <button id="playVideoBtn" class="playBtn" type="button" aria-label="Play video">▶</button>
+  <div class="reviewTime" id="reviewTime">00:00.000</div>
+  <button id="pauseVideoBtn" class="pauseBtn" type="button" aria-label="Pause video">⏸</button>
+</div>
+<div class="slider"><span class="small">Inicio</span><input id="scrubber" type="range" min="0" max="1000" value="0"><span class="small">Fin</span></div>
+<div class="row3"><button class="dark" id="prevFrame">◀ FRAME</button><button class="orange" id="markFinish">MARK FINISH</button><button class="dark" id="nextFrame">FRAME ▶</button></div>
+
+<div class="marks" id="marks"></div><button id="saveResultsBtn" class="saveResults">SAVE RESULTS</button>
+</section>
+
+<section class="controls">
+<button id="cameraBtn" class="cameraBtn">ACTIVATE CAMERA</button>
+<div class="row"><button id="startBtn" class="primary" disabled>START</button><button id="recordBtn" class="record" disabled>● RECORD</button></div>
+<div class="row"><button id="stopBtn" class="dark" disabled>STOP</button><button id="reviewBtn" class="dark" disabled>REVIEW</button></div>
+<div class="captureMeta">
+  <div id="qualityBadge" class="qualityBadge"></div>
+  <div class="captureSettings">
+    <label for="fpsSelect">FPS</label>
+    <select id="fpsSelect">
+      <option value="30">30 · Quality</option>
+      <option value="60" selected>60 · Recommended</option>
+      <option value="120">120 · High speed</option>
+    </select>
+  </div>
+</div>
+<div class="status" id="status">Cargando…</div><div class="status" style="opacity:.65">OFFICIAL V4 · Single Screen · Fresh Route</div>
+</section>
+</main>
+<div id="assignPanel"><div class="assignTitle" id="assignTitle"></div><div class="lanes" id="laneButtons"></div></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=> {
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gestureend',e=>e.preventDefault(),{passive:false});
+document.addEventListener('dblclick',e=>{
+  if(e.target.closest('button'))e.preventDefault();
+},{passive:false});
+let lastButtonTouch=0;
+document.addEventListener('touchend',e=>{
+  const btn=e.target.closest('button');
+  if(!btn)return;
+  const now=Date.now();
+  if(now-lastButtonTouch<280)e.preventDefault();
+  lastButtonTouch=now;
+},{passive:false});
+const $=id=>document.getElementById(id);
+const camera=$('camera'),reviewVideo=$('reviewVideo'),timer=$('timer'),mode=$('mode'),status=$('status');
+const cameraBtn=$('cameraBtn'),startBtn=$('startBtn'),recordBtn=$('recordBtn'),stopBtn=$('stopBtn'),reviewBtn=$('reviewBtn'),backBtn=$('backBtn'),qualityBadge=$('qualityBadge'),fpsSelect=$('fpsSelect');
+const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubber'),prevFrame=$('prevFrame'),nextFrame=$('nextFrame'),markFinish=$('markFinish'),playVideoBtn=$('playVideoBtn'),pauseVideoBtn=$('pauseVideoBtn');
+const heatContext=$('heatContext'),assignPanel=$('assignPanel'),assignTitle=$('assignTitle'),laneButtons=$('laneButtons'),marksEl=$('marks'),saveResultsBtn=$('saveResultsBtn');
+
+let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[],stagedAssignments=new Map(),targetVideoBitrate=8000000,actualFps=60;
+const params=new URLSearchParams(location.search),heatId=params.get('heat'),eventId=params.get('event'),returnUrl=params.get('return'),relayMode=params.get('relay')==='1';
+const SUPABASE_URL='https://qhsvvlcgwdmxxappplzh.supabase.co';
+const SUPABASE_KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
+const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
+const fmt=ms=>{ms=Math.max(0,ms||0);const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),x=Math.floor(ms%1000);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(x).padStart(3,'0')};
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const elapsed=()=>raceRunning?performance.now()-raceStart:0;
+function tick(){timer.textContent=fmt(elapsed());raf=requestAnimationFrame(tick)}
+
+async function openCamera(){
+  cameraBtn.style.display='none';
+  qualityBadge.classList.remove('show');
+  status.textContent='Configurando cámara…';
+  startBtn.disabled=true;
+
+  try{
+    if(!window.isSecureContext)throw new Error('La página no está en un contexto HTTPS seguro.');
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Este navegador no ofrece acceso a cámara.');
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+
+    const requestedFps=Number(fpsSelect.value||60);
+    const profiles={
+      30:{
+        primary:{facingMode:{ideal:'environment'},width:{ideal:1920,min:1280},height:{ideal:1080,min:720},frameRate:{ideal:30,max:30}},
+        fallback:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}}
+      },
+      60:{
+        primary:{facingMode:{ideal:'environment'},width:{ideal:1920,min:1280},height:{ideal:1080,min:720},frameRate:{ideal:60,min:50,max:60}},
+        fallback:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60,max:60}}
+      },
+      120:{
+        primary:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:120,min:90,max:120}},
+        fallback:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60,max:60}}
+      }
+    };
+
+    const profile=profiles[requestedFps]||profiles[60];
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({video:profile.primary,audio:false});
+    }catch(firstErr){
+      console.warn('Primary capture profile failed',firstErr);
+      try{
+        stream=await navigator.mediaDevices.getUserMedia({video:profile.fallback,audio:false});
+      }catch(secondErr){
+        console.warn('Fallback capture profile failed',secondErr);
+        stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+      }
+    }
+
+    camera.srcObject=stream;
+    await camera.play();
+
+    const track=stream.getVideoTracks()[0];
+    const settings=track?track.getSettings():{};
+    const width=settings.width||camera.videoWidth||0;
+    const height=settings.height||camera.videoHeight||0;
+    actualFps=settings.frameRate?Math.round(settings.frameRate):requestedFps;
+
+    // Mobile-safe bitrates: enough detail without overloading browser encoding.
+    if(actualFps>=100) targetVideoBitrate=10000000;
+    else if(actualFps>=50&&width>=1920) targetVideoBitrate=9000000;
+    else if(actualFps>=50) targetVideoBitrate=7000000;
+    else if(width>=1920) targetVideoBitrate=6000000;
+    else targetVideoBitrate=5000000;
+
+    const mbps=(targetVideoBitrate/1000000).toFixed(0);
+    const warning=Math.abs(actualFps-requestedFps)>=15?' · '+requestedFps+' requested':'';
+    qualityBadge.textContent=(width&&height?width+'×'+height:'Resolución detectada')+
+      ' · '+actualFps+' FPS reales'+warning+' · '+mbps+' Mbps';
+    qualityBadge.classList.add('show');
+
+    status.textContent='Cámara lista.';
+    mode.textContent='Cámara lista';
+    startBtn.disabled=false;
+  }catch(err){
+    console.error(err);
+    status.textContent='Error: '+(err.name||'CameraError')+' — '+(err.message||'No se pudo abrir la cámara');
+    mode.textContent='Cámara no disponible';
+    cameraBtn.style.display='block';
+  }
+}
+cameraBtn.addEventListener('click',openCamera);
+fpsSelect.addEventListener('change',async()=>{
+  if(raceRunning||recorder&&recorder.state==='recording'){
+    status.textContent='Detén la carrera antes de cambiar FPS.';
+    return;
+  }
+  status.textContent='Aplicando '+fpsSelect.value+' FPS…';
+  await openCamera();
+});
+
+startBtn.addEventListener('click',()=>{
+  raceRunning=true;raceStart=performance.now();cancelAnimationFrame(raf);tick();
+  startBtn.disabled=true;recordBtn.disabled=false;stopBtn.disabled=false;fpsSelect.disabled=true;mode.textContent='Cronómetro en marcha';
+});
+
+function bestMime(){
+  if(!window.MediaRecorder)return '';
+  for(const t of ['video/webm;codecs=vp8','video/webm','video/mp4'])if(MediaRecorder.isTypeSupported(t))return t;
+  return '';
+}
+recordBtn.addEventListener('click',()=>{
+  if(!stream||!raceRunning)return;
+  chunks=[];const type=bestMime();
+  try{
+    const opts={videoBitsPerSecond:targetVideoBitrate};
+    if(type)opts.mimeType=type;
+    recorder=new MediaRecorder(stream,opts);
+  }catch(e){
+    try{
+      recorder=type?new MediaRecorder(stream,{mimeType:type}):new MediaRecorder(stream);
+    }catch(e2){
+      status.textContent='Error MediaRecorder: '+(e2.message||e.message);
+      return;
+    }
+  }
+  recordRaceMs=elapsed();
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  recorder.onstop=()=>{
+    const blob=new Blob(chunks,{type:recorder.mimeType||type||'video/webm'});
+    if(videoUrl)URL.revokeObjectURL(videoUrl);
+    videoUrl=URL.createObjectURL(blob);reviewVideo.src=videoUrl;reviewBtn.disabled=false;
+    status.textContent='Video listo para revisar';mode.textContent='Grabación finalizada';
+  };
+  recorder.start(500);recordBtn.disabled=true;mode.textContent='● GRABANDO';
+});
+stopBtn.addEventListener('click',()=>{
+  if(recorder&&recorder.state!=='inactive')recorder.stop();
+  raceRunning=false;cancelAnimationFrame(raf);stopBtn.disabled=true;recordBtn.disabled=true;fpsSelect.disabled=false;mode.textContent='Carrera detenida';
+});
+reviewBtn.addEventListener('click',()=>{
+  if(!videoUrl)return;
+  camera.style.display='none';
+  reviewVideo.style.display='block';
+  reviewPanel.classList.add('show');
+  document.querySelector('.app').classList.add('reviewMode');
+  reviewVideo.currentTime=0;
+  scrubber.value=0;
+  updateReview();
+  mode.textContent='REVIEW';
+});
+function currentMs(){return recordRaceMs+(reviewVideo.currentTime*1000)}
+function updateReview(){
+  const t=currentMs();reviewTime.textContent=fmt(t);timer.textContent=fmt(t);
+  if(reviewVideo.duration&&isFinite(reviewVideo.duration))scrubber.value=Math.round(reviewVideo.currentTime/reviewVideo.duration*1000);
+}
+reviewVideo.addEventListener('timeupdate',updateReview);reviewVideo.addEventListener('seeked',updateReview);reviewVideo.addEventListener('loadedmetadata',updateReview);
+playVideoBtn.addEventListener('click',async()=>{
+  try{
+    await reviewVideo.play();
+    mode.textContent='▶ PLAYING';
+  }catch(err){
+    status.textContent='No se pudo reproducir el video: '+(err.message||err);
+  }
+});
+pauseVideoBtn.addEventListener('click',()=>{
+  reviewVideo.pause();
+  updateReview();
+  mode.textContent='⏸ PAUSED';
+});
+reviewVideo.addEventListener('play',()=>{mode.textContent='▶ PLAYING'});
+reviewVideo.addEventListener('pause',()=>{if(reviewPanel.classList.contains('show'))mode.textContent='⏸ PAUSED'});
+
+scrubber.addEventListener('input',()=>{if(reviewVideo.duration&&isFinite(reviewVideo.duration)){reviewVideo.pause();reviewVideo.currentTime=Number(scrubber.value)/1000*reviewVideo.duration}});
+function step(dir){reviewVideo.pause();const fps=Math.max(1,actualFps||Number(fpsSelect.value)||60);reviewVideo.currentTime=Math.min(Math.max(0,reviewVideo.currentTime+dir/fps),reviewVideo.duration||Infinity)}
+prevFrame.addEventListener('click',()=>step(-1));
+nextFrame.addEventListener('click',()=>step(1));
+[prevFrame,nextFrame,markFinish,playVideoBtn,pauseVideoBtn].forEach(btn=>{
+  btn.addEventListener('dblclick',e=>e.preventDefault());
+});
+
+async function loadHeat(){
+  if(!sb)return;
+  try{
+    if(relayMode){
+      if(!eventId)return;
+      const {data:ev,error:ee}=await sb.from('athletics_events').select('*').eq('id',eventId).single();if(ee)throw ee;
+      const {data:rows,error:re}=await sb.from('athletics_relay_results').select('*').eq('event_id',eventId).order('lane');if(re)throw re;
+      const teamIds=(rows||[]).map(x=>x.relay_team_id).filter(Boolean);
+      let teams=[];if(teamIds.length){const q=await sb.from('athletics_relay_teams').select('*').in('id',teamIds);if(q.error)throw q.error;teams=q.data||[]}
+      heatEntries=(rows||[]).map(en=>({...en,relayColor:(teams.find(t=>t.id===en.relay_team_id)||{}).color||''}));
+      heatContext.innerHTML='<b>'+esc(ev.name)+'</b> · FINAL<br><span class="small">'+heatEntries.length+' relay teams · double points</span>';heatContext.classList.add('show');
+      renderLanes();return;
+    }
+    if(!heatId)return;
+    const {data:h,error:he}=await sb.from('athletics_track_heats').select('*').eq('id',heatId).single();if(he)throw he;
+    const {data:ev,error:ee}=await sb.from('athletics_events').select('*').eq('id',eventId||h.event_id).single();if(ee)throw ee;
+    const {data:entries,error:xe}=await sb.from('athletics_track_entries').select('*').eq('heat_id',heatId).order('lane');if(xe)throw xe;
+    const regIds=(entries||[]).map(x=>x.registration_id).filter(Boolean);
+    let regs=[];if(regIds.length){const q=await sb.from('athletics_registrations').select('*').in('id',regIds);if(q.error)throw q.error;regs=q.data||[]}
+    const athleteIds=regs.map(r=>r.athlete_id).filter(Boolean);
+    let athletes=[];if(athleteIds.length){const q=await sb.from('athletics_athletes').select('*').in('id',athleteIds);if(q.error)throw q.error;athletes=q.data||[]}
+    heatEntries=(entries||[]).map(en=>{const reg=regs.find(r=>r.id===en.registration_id);const athlete=reg?athletes.find(a=>a.id===reg.athlete_id):null;return {...en,athlete}});
+    heatContext.innerHTML='<b>'+esc(ev.name)+'</b> · Heat '+esc(h.heat_number)+'<br><span class="small">'+heatEntries.length+' athletes</span>';heatContext.classList.add('show');
+    renderLanes();
+  }catch(err){heatContext.innerHTML='<span style="color:#ff9f1c">Load error: '+esc(err.message||err)+'</span>';heatContext.classList.add('show')}
+}
+function renderLanes(){
+  laneButtons.innerHTML=heatEntries.sort((a,b)=>(a.lane??999)-(b.lane??999)).map((en,i)=>{
+    const a=en.athlete||{},lane=en.lane??(i+1),displayName=relayMode?('Relay '+(en.relayColor||'')):((a.last_name||'')+', '+(a.first_name||''));
+    const staged=stagedAssignments.get(en.id);
+    const saved=en.official_time!=null?Number(en.official_time).toFixed(3):'';
+    const shown=staged!=null?Number(staged).toFixed(3):saved;
+    const cls=staged!=null?'pendingTime':(saved?'saved':'');
+    const label=staged!=null?'<span class="savedTime pendingTime">Pending: '+shown+' s</span>':(saved?'<span class="savedTime">Saved: '+saved+' s</span>':'');
+    return '<button class="laneBtn '+cls+'" data-entry="'+en.id+'"><span class="laneNo">Lane '+lane+'</span><span class="athlete">'+esc(displayName)+'</span>'+label+'</button>'
+  }).join('');
+  laneButtons.querySelectorAll('.laneBtn').forEach(b=>b.addEventListener('click',()=>stageLane(b.dataset.entry)));
+  updateSaveButton();
+}
+markFinish.addEventListener('click',()=>{
+  pendingMs=currentMs();
+  if(heatEntries.length){assignTitle.textContent='Tiempo '+(pendingMs/1000).toFixed(3)+' s — selecciona carril';assignPanel.classList.add('show');renderLanes()}
+  else{marks.push({time:pendingMs});pendingMs=null;renderMarks()}
+});
+function stageLane(entryId){
+  if(pendingMs==null)return;
+  const en=heatEntries.find(x=>x.id===entryId);if(!en)return;
+  const sec=Number((pendingMs/1000).toFixed(3));
+  stagedAssignments.set(entryId,sec);
+  const existing=marks.findIndex(m=>m.entryId===entryId);
+  const mark={time:pendingMs,lane:en.lane,entryId};
+  if(existing>=0)marks[existing]=mark;else marks.push(mark);
+  pendingMs=null;
+  assignPanel.classList.remove('show');
+  assignTitle.textContent='Tiempo asignado. Marca el siguiente corredor.';
+  renderLanes();
+  renderMarks();
+}
+function updateSaveButton(){
+  const count=stagedAssignments.size;
+  saveResultsBtn.classList.toggle('show',count>0);
+  saveResultsBtn.textContent=count>0?'SAVE RESULTS ('+count+')':'SAVE RESULTS';
+}
+saveResultsBtn.addEventListener('click',async()=>{
+  if(!sb||!stagedAssignments.size)return;
+  saveResultsBtn.disabled=true;
+  saveResultsBtn.textContent='SAVING…';
+  status.textContent='Guardando resultados…';
+  try{
+    for(const [entryId,sec] of stagedAssignments.entries()){
+      const table=relayMode?'athletics_relay_results':'athletics_track_entries';
+      const {error}=await sb.from(table)
+        .update({official_time:sec,status:'finished',updated_at:new Date().toISOString()})
+        .eq('id',entryId);
+      if(error)throw error;
+      const en=heatEntries.find(x=>x.id===entryId);
+      if(en){en.official_time=sec;en.status='finished'}
+    }
+    stagedAssignments.clear();
+    status.textContent='Resultados guardados correctamente.';
+    mode.textContent='RESULTS SAVED';
+    renderLanes();
+    renderMarks();
+  }catch(err){
+    console.error(err);
+    status.textContent='Error al guardar: '+(err.message||err);
+  }finally{
+    saveResultsBtn.disabled=false;
+    updateSaveButton();
+  }
+});
+function renderMarks(){marksEl.innerHTML=marks.slice().sort((a,b)=>a.time-b.time).map((m,i)=>'<div class="markRow"><span>'+(m.lane!=null?'Lane '+m.lane:'Lugar '+(i+1))+'</span><strong>'+fmt(m.time)+'</strong></div>').join('')}
+
+function closeCameraAndBack(){
+  document.querySelector('.app').classList.remove('reviewMode');
+  if(stagedAssignments.size>0){
+    const leave=confirm('Hay tiempos pendientes sin SAVE RESULTS. ¿Volver al heat igualmente?');
+    if(!leave)return;
+  }
+
+  try{
+    if(recorder&&recorder.state!=='inactive'){
+      recorder.onstop=null;
+      recorder.stop();
+    }
+  }catch(e){}
+
+  try{
+    if(stream){
+      stream.getTracks().forEach(track=>{
+        try{track.stop()}catch(e){}
+      });
+      stream=null;
+    }
+    camera.pause();
+    camera.srcObject=null;fpsSelect.disabled=false;
+  }catch(e){}
+
+  let target=returnUrl;
+  if(target){
+    if(target.startsWith('./?')){
+      target='../'+target.slice(1);
+    }
+    location.replace(target);
+    return;
+  }
+
+  if(document.referrer&&document.referrer.includes('intercolour-athletics-2026-admin')){
+    location.replace(document.referrer);
+    return;
+  }
+
+  const fallback=relayMode
+    ? '../intercolour-athletics-2026-relay-admin/?event='+encodeURIComponent(eventId||'')
+    : '../?event='+encodeURIComponent(eventId||'')+'&tab=results&heat='+encodeURIComponent(heatId||'')+(heatId?'#heat-'+encodeURIComponent(heatId):'');
+  location.replace(fallback);
+}
+backBtn.addEventListener('click',closeCameraAndBack);
+
+loadHeat();
+openCamera();
+});
+</script>
+</body>
+</html>
