@@ -86,6 +86,17 @@
 .modalgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .modalactions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 @media(max-width:560px){.modalgrid{grid-template-columns:1fr}.modalcard{max-height:92vh;overflow:auto}}
+
+.installFab{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:1500;display:none;align-items:center;gap:8px;background:#0b5fff;color:#fff;border:1px solid #3b7cff;border-radius:14px;padding:11px 14px;font-weight:900;box-shadow:0 14px 40px #0008}
+.installFab.show{display:flex}
+.installOverlay{position:fixed;inset:0;z-index:1600;display:none;place-items:center;background:#000a;padding:18px}
+.installOverlay.show{display:grid}
+.installCard{width:min(430px,100%);background:#0b2638;border:1px solid #285067;border-radius:18px;padding:18px;box-shadow:0 20px 60px #0009}
+.installCard h3{margin:0 0 10px;font-size:18px}.installCard p{margin:8px 0;color:#c9d8e0;line-height:1.4}
+.installCard .steps{background:#071d2d;border:1px solid #17384b;border-radius:12px;padding:11px;margin-top:12px}
+.installCard .closeInstall{width:100%;margin-top:14px}
+.updateToast{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:1700;display:none;background:#071d2d;color:#fff;border:1px solid #18d39e;border-radius:12px;padding:10px 14px;font-size:12px;font-weight:800;box-shadow:0 10px 30px #0008}
+.updateToast.show{display:block}
 </style>
 
   <link rel="manifest" href="./manifest.webmanifest">
@@ -726,23 +737,121 @@ boot();
 </script>
 
 <script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load',async()=>{
-    try{
-      const reg=await navigator.serviceWorker.register('./service-worker.js?v=5',{updateViaCache:'none'});
-      await reg.update();
-      if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
-      navigator.serviceWorker.addEventListener('controllerchange',()=>{
-        if(!sessionStorage.getItem('ff-sw-v5-reloaded')){
-          sessionStorage.setItem('ff-sw-v5-reloaded','1');
-          location.reload();
-        }
-      });
-      const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k.startsWith('fieldflow-athletics-admin-')&&k!=='fieldflow-athletics-admin-v5').map(k=>caches.delete(k)));
-    }catch(err){console.error(err)}
+(()=>{
+  const installBtn=document.getElementById('installAppBtn');
+  const installOverlay=document.getElementById('installOverlay');
+  const installTitle=document.getElementById('installTitle');
+  const installText=document.getElementById('installText');
+  const installSteps=document.getElementById('installSteps');
+  const closeInstall=document.getElementById('closeInstall');
+  const updateToast=document.getElementById('updateToast');
+  let deferredInstallPrompt=null;
+  let refreshing=false;
+
+  const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  const isiOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isSafariIOS=()=>isiOS()&&/safari/i.test(navigator.userAgent)&&!/crios|fxios|edgios/i.test(navigator.userAgent);
+
+  function showIOSInstall(){
+    if(isStandalone())return;
+    installTitle.textContent='Add FieldFlow Athletics to Home Screen';
+    installText.textContent='On iPhone/iPad, Safari does not allow a website to trigger installation automatically.';
+    installSteps.innerHTML='<b>Safari:</b><br>1. Tap the Share button ⬆<br>2. Choose <b>Add to Home Screen</b><br>3. Tap <b>Add</b>';
+    installOverlay.classList.add('show');
+  }
+
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();
+    deferredInstallPrompt=e;
+    if(!isStandalone()){
+      installBtn.textContent='⬇ INSTALL APP';
+      installBtn.classList.add('show');
+    }
   });
-}
+
+  window.addEventListener('appinstalled',()=>{
+    deferredInstallPrompt=null;
+    installBtn.classList.remove('show');
+  });
+
+  installBtn.addEventListener('click',async()=>{
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt=null;
+      installBtn.classList.remove('show');
+      return;
+    }
+    if(isiOS())showIOSInstall();
+  });
+
+  closeInstall.addEventListener('click',()=>installOverlay.classList.remove('show'));
+  installOverlay.addEventListener('click',e=>{if(e.target===installOverlay)installOverlay.classList.remove('show')});
+
+  if(isiOS()&&!isStandalone()){
+    installBtn.textContent='＋ ADD TO HOME SCREEN';
+    installBtn.classList.add('show');
+    installBtn.addEventListener('click',showIOSInstall,{once:false});
+  }
+
+  async function checkForUpdate(){
+    if(!('serviceWorker' in navigator))return;
+    try{
+      const reg=await navigator.serviceWorker.getRegistration('./');
+      if(reg)await reg.update();
+      if(reg&&reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+    }catch(err){console.error('PWA update check failed',err)}
+  }
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',async()=>{
+      try{
+        const reg=await navigator.serviceWorker.register('./service-worker.js?v=6',{updateViaCache:'none'});
+        await reg.update();
+
+        if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+
+        reg.addEventListener('updatefound',()=>{
+          const nw=reg.installing;
+          if(!nw)return;
+          nw.addEventListener('statechange',()=>{
+            if(nw.state==='installed'&&navigator.serviceWorker.controller){
+              updateToast.classList.add('show');
+              nw.postMessage({type:'SKIP_WAITING'});
+            }
+          });
+        });
+
+        navigator.serviceWorker.addEventListener('controllerchange',()=>{
+          if(refreshing)return;
+          refreshing=true;
+          updateToast.classList.add('show');
+          setTimeout(()=>location.reload(),250);
+        });
+
+        const keys=await caches.keys();
+        await Promise.all(keys.filter(k=>k.startsWith('fieldflow-athletics-admin-')&&k!=='fieldflow-athletics-admin-v6').map(k=>caches.delete(k)));
+      }catch(err){console.error('Service worker registration failed',err)}
+    });
+
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible')checkForUpdate();
+    });
+    window.addEventListener('focus',checkForUpdate);
+    setInterval(checkForUpdate,60*60*1000);
+  }
+})();
 </script>
+
+<button id="installAppBtn" class="installFab" type="button">⬇ INSTALL APP</button>
+<div id="installOverlay" class="installOverlay">
+  <div class="installCard">
+    <h3 id="installTitle">Install FieldFlow Athletics</h3>
+    <p id="installText"></p>
+    <div id="installSteps" class="steps"></div>
+    <button id="closeInstall" class="btn primary closeInstall" type="button">OK</button>
+  </div>
+</div>
+<div id="updateToast" class="updateToast">Updating FieldFlow Athletics…</div>
 </body>
 </html>
