@@ -2,12 +2,18 @@
   "name": "FieldFlow Athletics",
   "short_name": "FF Athletics",
   "description": "FieldFlow Athletics Admin",
+  "id": "/ctd-football-2026/fieldflow-athletics-admin-stable",
   "start_url": "/ctd-football-2026/fieldflow-athletics-admin/",
   "scope": "/ctd-football-2026/fieldflow-athletics-admin/",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "any",
   "background_color": "#000000",
   "theme_color": "#071d2d",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -27,14 +33,5 @@
       "type": "image/jpeg",
       "purpose": "maskable"
     }
-  ],
-  "id": "/ctd-football-2026/fieldflow-athletics-admin-pwa",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
-  "launch_handler": {
-    "client_mode": "navigate-existing"
-  },
-  "prefer_related_applications": false
+  ]
 }
