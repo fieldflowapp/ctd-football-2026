@@ -2,7 +2,7 @@
   "name": "FieldFlow Athletics",
   "short_name": "FF Athletics",
   "description": "FieldFlow Athletics Admin",
-  "start_url": "/ctd-football-2026/fieldflow-athletics-admin/?app=v5",
+  "start_url": "/ctd-football-2026/fieldflow-athletics-admin/?app=v6",
   "scope": "/ctd-football-2026/fieldflow-athletics-admin/",
   "display": "standalone",
   "orientation": "any",
@@ -28,5 +28,9 @@
       "purpose": "maskable"
     }
   ],
-  "id": "/ctd-football-2026/fieldflow-athletics-admin/"
+  "id": "/ctd-football-2026/fieldflow-athletics-admin/",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ]
 }
