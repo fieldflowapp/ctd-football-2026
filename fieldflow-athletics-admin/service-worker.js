@@ -1,4 +1,4 @@
-const CACHE='fieldflow-athletics-admin-v5';
+const CACHE='fieldflow-athletics-admin-v6';
 const SHELL=['./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.jpg','./icons/maskable-icon-512.jpg'];
 
 self.addEventListener('install',event=>{
