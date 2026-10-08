@@ -99,7 +99,7 @@
 .updateToast.show{display:block}
 </style>
 
-  <link rel="manifest" href="./manifest-v8.webmanifest?v=8">
+  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-192.png">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -507,7 +507,7 @@ function renderRelayResults(){
   const rows=state.relayResults.slice().sort((a,b)=>a.lane-b.lane);
   if(!rows.length){pane.innerHTML='<div class="empty">Set colours and lanes first.</div>';return}
   pane.innerHTML=recordBanner(e)+
-    '<div class="toolbar"><a class="btn primary" href="./photo-finish-v4/?v=20261008-v4&relay=1&event='+encodeURIComponent(e.id)+'&return='+encodeURIComponent('../?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=results')+'">📷 Photo Finish</a><button class="btn good" id="saveRelayResults">Save results</button></div>'+
+    '<div class="toolbar"><a class="btn primary" href="./photo-finish/?relay=1&event='+encodeURIComponent(e.id)+'&return='+encodeURIComponent('../?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=results')+'">📷 Photo Finish</a><button class="btn good" id="saveRelayResults">Save results</button></div>'+
     '<div class="message">Enter the official relay time or use Photo Finish. Points are calculated automatically at ×2.</div><div id="resultMsg"></div>'+
     '<div class="tablewrap"><table><thead><tr><th>Lane</th><th>Colour</th><th>Status</th><th>Official time</th></tr></thead><tbody>'+
     rows.map(rr=>'<tr data-relay-result="'+rr.id+'"><td class="lane">'+rr.lane+'</td><td>'+colorDot(relayColorForResult(rr))+'</td><td><select class="relayStatus"><option value="scheduled" '+(rr.status==='scheduled'?'selected':'')+'>Scheduled</option><option value="finished" '+(rr.status==='finished'?'selected':'')+'>Finished</option><option value="dns" '+(rr.status==='dns'?'selected':'')+'>DNS</option><option value="dnf" '+(rr.status==='dnf'?'selected':'')+'>DNF</option><option value="dq" '+(rr.status==='dq'?'selected':'')+'>DQ</option></select></td><td>'+relayTimeInput(rr)+'</td></tr>').join('')+
@@ -531,7 +531,7 @@ function renderRelayFinal(){
   const pane=$('finalPane'),e=state.currentEvent;if(!e)return;
   const rank=state.relayRanking||[];
   pane.innerHTML=recordBanner(e)+
-    '<div class="toolbar"><a class="btn primary" href="./photo-finish-v4/?v=20261008-v4&relay=1&event='+encodeURIComponent(e.id)+'&return='+encodeURIComponent('../?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=final')+'">📷 Photo Finish Final</a></div>'+
+    '<div class="toolbar"><a class="btn primary" href="./photo-finish/?relay=1&event='+encodeURIComponent(e.id)+'&return='+encodeURIComponent('../?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=final')+'">📷 Photo Finish Final</a></div>'+
     '<div class="message"><b>Official relay ranking · double points.</b></div>'+
     (rank.length?'<div class="tablewrap"><table><thead><tr><th>Place</th><th>Colour</th><th>Lane</th><th>Time</th><th>Points</th></tr></thead><tbody>'+
       rank.map(x=>'<tr><td><b>'+x.place+'</b></td><td>'+colorDot(x.color)+'</td><td>'+x.lane+'</td><td><b>'+fmtTime(x.official_time,e)+'</b></td><td><b>'+Number(x.points||0).toFixed(0)+'</b></td></tr>').join('')+
@@ -586,7 +586,7 @@ function renderSeries(){
   if(!heats.length){pane.innerHTML=top+'<div class="empty">No series generated yet.</div>'}
   else pane.innerHTML=top+heats.map(h=>{
     const ens=entriesForHeat(h.id).sort((a,b)=>(a.lane??999)-(b.lane??999));
-    return '<div class="heat" id="heat-'+h.id+'"><div class="heathead"><b>Heat '+h.heat_number+'</b><div class="flex"><a class="btn mini primary" href="./photo-finish-v4/?v=20261008-v4&event='+encodeURIComponent(e.id)+'&heat='+encodeURIComponent(h.id)+'&return='+encodeURIComponent('../?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=results&heat='+encodeURIComponent(h.id)+'#heat-'+encodeURIComponent(h.id))+'">📷 Photo Finish</a><span class="badge '+(h.status==='completed'?'ok':'')+'">'+h.status+'</span></div></div><div class="heatbody"><div class="tablewrap"><table><thead><tr><th>'+(e.start_mode==='mass_start'?'#':'Lane')+'</th><th>Athlete</th><th>Colour</th><th>Status</th></tr></thead><tbody>'+
+    return '<div class="heat" id="heat-'+h.id+'"><div class="heathead"><b>Heat '+h.heat_number+'</b><div class="flex"><a class="btn mini primary" href="./photo-finish/?event='+encodeURIComponent(e.id)+'&heat='+encodeURIComponent(h.id)+'&return='+encodeURIComponent('../?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=results&heat='+encodeURIComponent(h.id)+'#heat-'+encodeURIComponent(h.id))+'">📷 Photo Finish</a><span class="badge '+(h.status==='completed'?'ok':'')+'">'+h.status+'</span></div></div><div class="heatbody"><div class="tablewrap"><table><thead><tr><th>'+(e.start_mode==='mass_start'?'#':'Lane')+'</th><th>Athlete</th><th>Colour</th><th>Status</th></tr></thead><tbody>'+
       ens.map((en,i)=>{const a=athleteForEntry(en)||{};return '<tr><td class="lane">'+(e.start_mode==='mass_start'?(i+1):(en.lane??'—'))+'</td><td>'+esc(a.last_name||'')+', '+esc(a.first_name||'')+'</td><td>'+colorDot(a.color||'')+'</td><td>'+esc(en.status)+'</td></tr>'}).join('')+
       '</tbody></table></div></div></div>'
   }).join('');
@@ -614,7 +614,7 @@ function renderResults(){
   pane.innerHTML=recordBanner(e)+'<div class="message">'+(usesSplitTime(e)?'Enter time as MIN : SEC . 1/100. FieldFlow stores it internally in seconds and ranks automatically.':'Enter official Photo Finish times in seconds (example: 12.483).')+' Use DNS / DNF / DQ when needed.</div><div id="resultMsg"></div>'+
   heats.map(h=>{
     const ens=entriesForHeat(h.id).sort((a,b)=>(a.lane??999)-(b.lane??999));
-    return '<div class="heat" id="heat-'+h.id+'"><div class="heathead"><div><b>Heat '+h.heat_number+'</b> <span class="badge">'+h.status+'</span></div><div class="flex"><a class="btn mini primary" href="./photo-finish-v4/?v=20261008-v4&event='+encodeURIComponent(e.id)+'&heat='+encodeURIComponent(h.id)+'&return='+encodeURIComponent('../?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=results&heat='+encodeURIComponent(h.id)+'#heat-'+encodeURIComponent(h.id))+'">📷 Photo Finish</a><button class="btn mini good saveHeat" data-heat="'+h.id+'">Save</button><button class="btn mini '+(h.status==='completed'?'ghost':'warn')+' completeHeat" data-heat="'+h.id+'">'+(h.status==='completed'?'Reopen':'Complete heat')+'</button></div></div><div class="heatbody"><div class="tablewrap"><table><thead><tr><th>'+(e.start_mode==='mass_start'?'#':'Lane')+'</th><th>Athlete</th><th>Colour</th><th>Status</th><th>Official time</th></tr></thead><tbody>'+
+    return '<div class="heat" id="heat-'+h.id+'"><div class="heathead"><div><b>Heat '+h.heat_number+'</b> <span class="badge">'+h.status+'</span></div><div class="flex"><a class="btn mini primary" href="./photo-finish/?event='+encodeURIComponent(e.id)+'&heat='+encodeURIComponent(h.id)+'&return='+encodeURIComponent('../?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=results&heat='+encodeURIComponent(h.id)+'#heat-'+encodeURIComponent(h.id))+'">📷 Photo Finish</a><button class="btn mini good saveHeat" data-heat="'+h.id+'">Save</button><button class="btn mini '+(h.status==='completed'?'ghost':'warn')+' completeHeat" data-heat="'+h.id+'">'+(h.status==='completed'?'Reopen':'Complete heat')+'</button></div></div><div class="heatbody"><div class="tablewrap"><table><thead><tr><th>'+(e.start_mode==='mass_start'?'#':'Lane')+'</th><th>Athlete</th><th>Colour</th><th>Status</th><th>Official time</th></tr></thead><tbody>'+
       ens.map((en,i)=>{const a=athleteForEntry(en)||{};return '<tr data-entry="'+en.id+'"><td class="lane">'+(e.start_mode==='mass_start'?(i+1):(en.lane??'—'))+'</td><td><b>'+esc(a.last_name||'')+', '+esc(a.first_name||'')+'</b></td><td>'+colorDot(a.color||'')+'</td><td><select class="entryStatus"><option value="scheduled" '+(en.status==='scheduled'?'selected':'')+'>Scheduled</option><option value="finished" '+(en.status==='finished'?'selected':'')+'>Finished</option><option value="dns" '+(en.status==='dns'?'selected':'')+'>DNS</option><option value="dnf" '+(en.status==='dnf'?'selected':'')+'>DNF</option><option value="dq" '+(en.status==='dq'?'selected':'')+'>DQ</option></select></td><td>'+(usesSplitTime(e)?splitTimeInput('entry',en.official_time):'<input class="timeinput entryTime" type="number" step="0.001" min="0" inputmode="decimal" value="'+(en.official_time??'')+'" placeholder="00.000">')+'</td></tr>'}).join('')+
       '</tbody></table></div></div></div>'
   }).join('');
@@ -669,7 +669,7 @@ async function renderFinal(){
   const finalHeat=state.heats.find(h=>h.stage==='final');
   let head=recordBanner(e)+'<div class="toolbar"><button class="btn primary" id="prepareFinal">Prepare Top '+(e.finalists_count||8)+' Final</button>';
   if(finalHeat){
-    head+='<a class="btn primary" href="./photo-finish-v4/?v=20261008-v4&event='+encodeURIComponent(e.id)+'&heat='+encodeURIComponent(finalHeat.id)+'&return='+encodeURIComponent('../?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=final&heat='+encodeURIComponent(finalHeat.id)+'#heat-'+encodeURIComponent(finalHeat.id))+'">📷 Photo Finish Final</a>';
+    head+='<a class="btn primary" href="./photo-finish/?event='+encodeURIComponent(e.id)+'&heat='+encodeURIComponent(finalHeat.id)+'&return='+encodeURIComponent('../?event='+encodeURIComponent(e.id)+'&category='+encodeURIComponent(e.category)+'&gender='+encodeURIComponent(e.gender)+'&tab=final&heat='+encodeURIComponent(finalHeat.id)+'#heat-'+encodeURIComponent(finalHeat.id))+'">📷 Photo Finish Final</a>';
     head+='<button class="btn good" id="seedFinal">Seed lanes center-out</button>';
   }
   head+='</div><div id="finalMsg"></div>';
@@ -745,18 +745,19 @@ boot();
   const installSteps=document.getElementById('installSteps');
   const closeInstall=document.getElementById('closeInstall');
   const updateToast=document.getElementById('updateToast');
+
   let deferredInstallPrompt=null;
   let refreshing=false;
+  let updateCheckRunning=false;
 
   const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
   const isiOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isSafariIOS=()=>isiOS()&&/safari/i.test(navigator.userAgent)&&!/crios|fxios|edgios/i.test(navigator.userAgent);
 
   function showIOSInstall(){
     if(isStandalone())return;
     installTitle.textContent='Add FieldFlow Athletics to Home Screen';
-    installText.textContent='On iPhone/iPad, Safari does not allow a website to trigger installation automatically.';
-    installSteps.innerHTML='<b>Safari:</b><br>1. Tap the Share button ⬆<br>2. Choose <b>Add to Home Screen</b><br>3. Tap <b>Add</b>';
+    installText.textContent='On iPhone/iPad, Safari requires Add to Home Screen from the Share menu.';
+    installSteps.innerHTML='<b>Safari:</b><br>1. Tap Share ⬆<br>2. Choose <b>Add to Home Screen</b><br>3. Tap <b>Add</b>';
     installOverlay.classList.add('show');
   }
 
@@ -791,33 +792,60 @@ boot();
   if(isiOS()&&!isStandalone()){
     installBtn.textContent='＋ ADD TO HOME SCREEN';
     installBtn.classList.add('show');
-    installBtn.addEventListener('click',showIOSInstall,{once:false});
   }
 
-  async function checkForUpdate(){
+  async function activateNewestWorker(){
     if(!('serviceWorker' in navigator))return;
+    const reg=await navigator.serviceWorker.getRegistration('./');
+    if(reg){
+      await reg.update();
+      if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+    }
+  }
+
+  async function checkBuild(){
+    if(updateCheckRunning)return;
+    updateCheckRunning=true;
     try{
-      const reg=await navigator.serviceWorker.getRegistration('./');
-      if(reg)await reg.update();
-      if(reg&&reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
-    }catch(err){console.error('PWA update check failed',err)}
+      const res=await fetch('./version.json?ts='+Date.now(),{cache:'no-store'});
+      if(!res.ok)return;
+      const meta=await res.json();
+      const serverBuild=String(meta.build||meta.commit||'');
+      if(!serverBuild)return;
+
+      const localBuild=localStorage.getItem('ff-athletics-build');
+      if(!localBuild){
+        localStorage.setItem('ff-athletics-build',serverBuild);
+        return;
+      }
+
+      if(localBuild!==serverBuild){
+        localStorage.setItem('ff-athletics-build',serverBuild);
+        updateToast.classList.add('show');
+        await activateNewestWorker();
+        setTimeout(()=>location.reload(),350);
+      }
+    }catch(err){
+      console.warn('Build check failed',err);
+    }finally{
+      updateCheckRunning=false;
+    }
   }
 
   if('serviceWorker' in navigator){
     window.addEventListener('load',async()=>{
       try{
-        const reg=await navigator.serviceWorker.register('./service-worker.js?v=8',{updateViaCache:'none'});
+        const reg=await navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'});
         await reg.update();
-
         if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
 
         reg.addEventListener('updatefound',()=>{
-          const nw=reg.installing;
-          if(!nw)return;
-          nw.addEventListener('statechange',()=>{
-            if(nw.state==='installed'&&navigator.serviceWorker.controller){
+          const worker=reg.installing;
+          if(!worker)return;
+          worker.addEventListener('statechange',()=>{
+            if(worker.state==='installed'&&navigator.serviceWorker.controller){
               updateToast.classList.add('show');
-              nw.postMessage({type:'SKIP_WAITING'});
+              worker.postMessage({type:'SKIP_WAITING'});
             }
           });
         });
@@ -829,16 +857,18 @@ boot();
           setTimeout(()=>location.reload(),250);
         });
 
-        const keys=await caches.keys();
-        await Promise.all(keys.filter(k=>k.startsWith('fieldflow-athletics-admin-')&&k!=='fieldflow-athletics-admin-v8').map(k=>caches.delete(k)));
-      }catch(err){console.error('Service worker registration failed',err)}
+        await checkBuild();
+      }catch(err){
+        console.error('Service worker registration failed',err);
+      }
     });
 
-    document.addEventListener('visibilitychange',()=>{
-      if(document.visibilityState==='visible')checkForUpdate();
-    });
-    window.addEventListener('focus',checkForUpdate);
-    setInterval(checkForUpdate,60*60*1000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkBuild()});
+    window.addEventListener('focus',checkBuild);
+    setInterval(checkBuild,60*60*1000);
+  }else{
+    window.addEventListener('load',checkBuild);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkBuild()});
   }
 })();
 </script>
