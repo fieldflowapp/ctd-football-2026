@@ -28,7 +28,8 @@ header{flex:0 0 auto;min-height:48px;padding:7px 9px;background:var(--navy2);dis
 main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .stage{position:relative;flex:1 1 auto;min-height:0;background:#000;overflow:hidden}
 video{width:100%;height:100%;object-fit:cover;background:#000;touch-action:none}
-#reviewVideo{display:none}
+#reviewVideo{display:none;transform-origin:center center}
+#reviewVideo.orientationFix{position:absolute;left:50%;top:50%;max-width:none;max-height:none}
 .finish-line{position:absolute;top:0;bottom:0;left:50%;width:3px;background:var(--red);box-shadow:0 0 12px var(--red);pointer-events:none}
 .finish-line:after{content:"META";position:absolute;top:7px;left:7px;font-size:10px;font-weight:900;background:#ff4d4dcc;padding:3px 5px;border-radius:5px}
 .timerbox{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:#000b;padding:5px 10px;border-radius:10px;text-align:center;white-space:nowrap}
@@ -149,7 +150,7 @@ const cameraBtn=$('cameraBtn'),startBtn=$('startBtn'),recordBtn=$('recordBtn'),s
 const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubber'),prevFrame=$('prevFrame'),nextFrame=$('nextFrame'),markFinish=$('markFinish'),playVideoBtn=$('playVideoBtn'),pauseVideoBtn=$('pauseVideoBtn');
 const heatContext=$('heatContext'),assignPanel=$('assignPanel'),assignTitle=$('assignTitle'),laneButtons=$('laneButtons'),marksEl=$('marks'),saveResultsBtn=$('saveResultsBtn');
 
-let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[],stagedAssignments=new Map(),targetVideoBitrate=8000000,actualFps=60;
+let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[],stagedAssignments=new Map(),targetVideoBitrate=8000000,actualFps=60,captureVideoWidth=0,captureVideoHeight=0,captureOrientationAngle=0,reviewRotation=0;
 const params=new URLSearchParams(location.search),heatId=params.get('heat'),eventId=params.get('event'),returnUrl=params.get('return'),relayMode=params.get('relay')==='1';
 const SUPABASE_URL='https://qhsvvlcgwdmxxappplzh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
@@ -247,6 +248,53 @@ startBtn.addEventListener('click',()=>{
   startBtn.disabled=true;recordBtn.disabled=false;stopBtn.disabled=false;fpsSelect.disabled=true;mode.textContent='Cronómetro en marcha';
 });
 
+function readOrientationAngle(){
+  const raw=(screen.orientation&&Number.isFinite(screen.orientation.angle))?screen.orientation.angle:
+    (typeof window.orientation==='number'?window.orientation:0);
+  return ((raw%360)+360)%360;
+}
+
+function resetReviewOrientation(){
+  reviewRotation=0;
+  reviewVideo.classList.remove('orientationFix');
+  reviewVideo.style.width='';
+  reviewVideo.style.height='';
+  reviewVideo.style.left='';
+  reviewVideo.style.top='';
+  reviewVideo.style.position='';
+  reviewVideo.style.transform='';
+}
+
+function applyReviewOrientation(){
+  resetReviewOrientation();
+  const rw=reviewVideo.videoWidth||0, rh=reviewVideo.videoHeight||0;
+  const cw=captureVideoWidth||0, ch=captureVideoHeight||0;
+  if(!rw||!rh||!cw||!ch)return;
+
+  const captureLandscape=cw>ch;
+  const reviewLandscape=rw>rh;
+
+  // iOS/Safari can occasionally replay a MediaRecorder clip with width/height
+  // orientation swapped after repeated camera sessions. Correct only when the
+  // recorded clip disagrees with the live camera orientation captured for THIS heat.
+  if(captureLandscape===reviewLandscape)return;
+
+  const currentAngle=readOrientationAngle();
+  let delta=((captureOrientationAngle-currentAngle)%360+360)%360;
+  // A 90° mismatch needs a quarter-turn. When device orientation did not change,
+  // Safari's recurring metadata issue is corrected clockwise.
+  if(delta!==90&&delta!==270)delta=90;
+  reviewRotation=(delta===270?-90:90);
+
+  const stage=reviewVideo.closest('.stage');
+  if(!stage)return;
+  const rect=stage.getBoundingClientRect();
+  reviewVideo.classList.add('orientationFix');
+  reviewVideo.style.width=Math.max(1,rect.height)+'px';
+  reviewVideo.style.height=Math.max(1,rect.width)+'px';
+  reviewVideo.style.transform='translate(-50%,-50%) rotate('+reviewRotation+'deg)';
+}
+
 function bestMime(){
   if(!window.MediaRecorder)return '';
   for(const t of ['video/webm;codecs=vp8','video/webm','video/mp4'])if(MediaRecorder.isTypeSupported(t))return t;
@@ -254,6 +302,10 @@ function bestMime(){
 }
 recordBtn.addEventListener('click',()=>{
   if(!stream||!raceRunning)return;
+  resetReviewOrientation();
+  captureVideoWidth=camera.videoWidth||((stream.getVideoTracks()[0]||{}).getSettings?.().width)||0;
+  captureVideoHeight=camera.videoHeight||((stream.getVideoTracks()[0]||{}).getSettings?.().height)||0;
+  captureOrientationAngle=readOrientationAngle();
   chunks=[];const type=bestMime();
   try{
     const opts={videoBitsPerSecond:targetVideoBitrate};
@@ -272,7 +324,7 @@ recordBtn.addEventListener('click',()=>{
   recorder.onstop=()=>{
     const blob=new Blob(chunks,{type:recorder.mimeType||type||'video/webm'});
     if(videoUrl)URL.revokeObjectURL(videoUrl);
-    videoUrl=URL.createObjectURL(blob);reviewVideo.src=videoUrl;reviewBtn.disabled=false;
+    videoUrl=URL.createObjectURL(blob);resetReviewOrientation();reviewVideo.src=videoUrl;reviewVideo.load();reviewBtn.disabled=false;
     status.textContent='Video listo para revisar';mode.textContent='Grabación finalizada';
   };
   recorder.start(500);recordBtn.disabled=true;mode.textContent='● GRABANDO';
@@ -289,6 +341,7 @@ reviewBtn.addEventListener('click',()=>{
   document.querySelector('.app').classList.add('reviewMode');
   reviewVideo.currentTime=0;
   scrubber.value=0;
+  applyReviewOrientation();
   updateReview();
   mode.textContent='REVIEW';
 });
@@ -297,7 +350,7 @@ function updateReview(){
   const t=currentMs();reviewTime.textContent=fmt(t);timer.textContent=fmt(t);
   if(reviewVideo.duration&&isFinite(reviewVideo.duration))scrubber.value=Math.round(reviewVideo.currentTime/reviewVideo.duration*1000);
 }
-reviewVideo.addEventListener('timeupdate',updateReview);reviewVideo.addEventListener('seeked',updateReview);reviewVideo.addEventListener('loadedmetadata',updateReview);
+reviewVideo.addEventListener('timeupdate',updateReview);reviewVideo.addEventListener('seeked',updateReview);reviewVideo.addEventListener('loadedmetadata',()=>{applyReviewOrientation();updateReview();});
 playVideoBtn.addEventListener('click',async()=>{
   try{
     await reviewVideo.play();
@@ -313,6 +366,10 @@ pauseVideoBtn.addEventListener('click',()=>{
 });
 reviewVideo.addEventListener('play',()=>{mode.textContent='▶ PLAYING'});
 reviewVideo.addEventListener('pause',()=>{if(reviewPanel.classList.contains('show'))mode.textContent='⏸ PAUSED'});
+window.addEventListener('resize',()=>{if(reviewPanel.classList.contains('show'))applyReviewOrientation()});
+if(screen.orientation&&screen.orientation.addEventListener){
+  screen.orientation.addEventListener('change',()=>{if(reviewPanel.classList.contains('show'))applyReviewOrientation()});
+}
 
 scrubber.addEventListener('input',()=>{if(reviewVideo.duration&&isFinite(reviewVideo.duration)){reviewVideo.pause();reviewVideo.currentTime=Number(scrubber.value)/1000*reviewVideo.duration}});
 function step(dir){reviewVideo.pause();const fps=Math.max(1,actualFps||Number(fpsSelect.value)||60);reviewVideo.currentTime=Math.min(Math.max(0,reviewVideo.currentTime+dir/fps),reviewVideo.duration||Infinity)}
