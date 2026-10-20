@@ -38,6 +38,26 @@ video{width:100%;height:100%;object-fit:cover;background:#000;touch-action:none}
 .review{display:none;flex:0 0 auto;background:var(--navy2);padding:7px 9px calc(7px + env(safe-area-inset-bottom));gap:6px;border-top:1px solid #ffffff18}
 .review.show{display:grid}
 .app.reviewMode .controls{display:none}
+.app.reviewMode main{min-height:0;overflow:hidden}
+.app.reviewMode .stage{flex:1 1 auto;min-height:180px}
+.app.reviewMode .review{
+  flex:0 0 auto;
+  max-height:min(48dvh,430px);
+  min-height:0;
+  overflow:hidden;
+  grid-template-rows:auto auto auto minmax(0,1fr) auto auto;
+}
+.reviewBottomActions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  position:relative;
+  z-index:4;
+  background:var(--navy2);
+  padding-top:2px;
+}
+.reviewBottomActions button{min-height:44px}
+
 .row{display:grid;grid-template-columns:1fr 1fr;gap:6px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 .primary,.record,.dark,.orange,.cameraBtn{min-height:42px;padding:9px 7px;font-size:13px}
 .primary{background:var(--green);color:#022016}.record{background:var(--red);color:#fff}.dark{background:#173247;color:#fff}.orange{background:var(--orange);color:#211100}.cameraBtn{background:var(--cyan);color:#002033}
@@ -64,11 +84,22 @@ input[type=range]{width:100%;margin:0;touch-action:pan-x}
 .laneBtn.saved{background:#153b31;border-color:var(--green)}
 .laneNo{font-size:14px;color:var(--cyan);font-weight:900}.athlete{display:block;font-size:9px;color:#d8e2e9;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.savedTime{display:block;font-size:10px;color:#7cf0bf;margin-top:2px}
 .pendingTime{color:var(--orange)!important}
-.marks{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;max-height:none;overflow:hidden;border-top:1px solid #ffffff18;padding-top:4px}
+.marks{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;max-height:86px;min-height:0;overflow-y:auto;overscroll-behavior:contain;border-top:1px solid #ffffff18;padding-top:4px}
 .markRow{display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:10px;min-width:0}
 .markRow strong{font-variant-numeric:tabular-nums}
 .saveResults{display:none;background:var(--green);color:#022016;font-size:14px;min-height:42px;padding:8px 10px}
 .saveResults.show{display:block}
+@media(max-height:820px){
+  .app.reviewMode .review{max-height:min(52dvh,390px);gap:4px;padding:5px 7px calc(5px + env(safe-area-inset-bottom))}
+  .app.reviewMode .stage{min-height:160px}
+  .app.reviewMode .marks{max-height:58px}
+  .reviewBottomActions{gap:6px}
+  .reviewBottomActions button{min-height:40px;padding:7px 5px;font-size:12px}
+  .playbackRow{grid-template-columns:46px minmax(0,1fr) 46px;gap:5px}
+  .playBtn,.pauseBtn{min-height:38px}
+  .reviewTime{font-size:22px}
+  #prevFrame,#markFinish,#nextFrame{min-height:40px;font-size:11px}
+}
 @media(max-height:700px){
   header{min-height:42px;padding:5px 7px}
   .backBtn{min-height:32px;padding:6px;font-size:11px}
@@ -105,6 +136,10 @@ input[type=range]{width:100%;margin:0;touch-action:pan-x}
 <div class="row3"><button class="dark" id="prevFrame">◀ FRAME</button><button class="orange" id="markFinish">MARK FINISH</button><button class="dark" id="nextFrame">FRAME ▶</button></div>
 
 <div class="marks" id="marks"></div><button id="saveResultsBtn" class="saveResults">SAVE RESULTS</button>
+<div class="reviewBottomActions">
+  <button id="reviewBackBtn" class="dark" type="button">← BACK</button>
+  <button id="liveCameraBtn" class="dark" type="button">LIVE CAMERA</button>
+</div>
 </section>
 
 <section class="controls">
@@ -147,7 +182,7 @@ document.addEventListener('touchend',e=>{
 const $=id=>document.getElementById(id);
 const camera=$('camera'),reviewVideo=$('reviewVideo'),timer=$('timer'),mode=$('mode'),status=$('status');
 const cameraBtn=$('cameraBtn'),startBtn=$('startBtn'),recordBtn=$('recordBtn'),stopBtn=$('stopBtn'),reviewBtn=$('reviewBtn'),backBtn=$('backBtn'),qualityBadge=$('qualityBadge'),fpsSelect=$('fpsSelect');
-const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubber'),prevFrame=$('prevFrame'),nextFrame=$('nextFrame'),markFinish=$('markFinish'),playVideoBtn=$('playVideoBtn'),pauseVideoBtn=$('pauseVideoBtn');
+const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubber'),prevFrame=$('prevFrame'),nextFrame=$('nextFrame'),markFinish=$('markFinish'),playVideoBtn=$('playVideoBtn'),pauseVideoBtn=$('pauseVideoBtn'),reviewBackBtn=$('reviewBackBtn'),liveCameraBtn=$('liveCameraBtn');
 const heatContext=$('heatContext'),assignPanel=$('assignPanel'),assignTitle=$('assignTitle'),laneButtons=$('laneButtons'),marksEl=$('marks'),saveResultsBtn=$('saveResultsBtn');
 
 let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[],stagedAssignments=new Map(),targetVideoBitrate=8000000,actualFps=60,captureVideoWidth=0,captureVideoHeight=0,captureOrientationAngle=0,reviewRotation=0;
@@ -345,6 +380,18 @@ reviewBtn.addEventListener('click',()=>{
   updateReview();
   mode.textContent='REVIEW';
 });
+function returnToLiveCamera(){
+  reviewVideo.pause();
+  reviewPanel.classList.remove('show');
+  document.querySelector('.app').classList.remove('reviewMode');
+  resetReviewOrientation();
+  reviewVideo.style.display='none';
+  camera.style.display='block';
+  try{camera.play()}catch(_){}
+  mode.textContent='Cámara lista';
+}
+liveCameraBtn.addEventListener('click',returnToLiveCamera);
+reviewBackBtn.addEventListener('click',()=>backBtn.click());
 function currentMs(){return recordRaceMs+(reviewVideo.currentTime*1000)}
 function updateReview(){
   const t=currentMs();reviewTime.textContent=fmt(t);timer.textContent=fmt(t);
