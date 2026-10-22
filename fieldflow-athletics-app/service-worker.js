@@ -1,9 +1,9 @@
 const CACHE='fieldflow-athletics-app-shell-v1';
 const STATIC_SHELL=[
   './manifest.webmanifest',
-  '/ctd-football-2026/fieldflow-athletics-admin/icons/icon-192.png',
-  '/ctd-football-2026/fieldflow-athletics-admin/icons/icon-512.jpg',
-  '/ctd-football-2026/fieldflow-athletics-admin/icons/maskable-icon-512.jpg'
+  './icons/icon-192.png',
+  './icons/icon-512.jpg',
+  './icons/maskable-icon-512.jpg'
 ];
 
 self.addEventListener('install',event=>{
