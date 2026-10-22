@@ -22,9 +22,10 @@ header{flex:0 0 auto;min-height:48px;padding:7px 9px;background:var(--navy2);dis
 .backBtn{background:#173247;color:#fff;padding:8px 7px;font-size:12px;min-height:36px}
 .brand{text-align:center;font-weight:900;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand span{color:var(--cyan)}
 .small{font-size:11px;color:var(--muted)}
-#heatContext{display:none;flex:0 0 auto;padding:5px 9px;background:#0a2b3f;border-bottom:1px solid #ffffff18;font-size:11px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#heatContext.show{display:block}
-#heatContext br{display:none}
+#heatContext{display:none;flex:0 0 auto;padding:5px 9px;background:#0a2b3f;border-bottom:1px solid #ffffff18;font-size:11px;line-height:1.15;white-space:nowrap;overflow:hidden}
+#heatContext.show{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#heatContext .heatTitle{font-weight:900;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#heatContext .heatCount{color:var(--muted);flex:0 0 auto;text-align:right}
 main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .stage{position:relative;flex:1 1 auto;min-height:0;background:#000;overflow:hidden}
 video{width:100%;height:100%;object-fit:cover;background:#000;touch-action:none}
@@ -463,7 +464,7 @@ async function loadHeat(){
       const teamIds=(rows||[]).map(x=>x.relay_team_id).filter(Boolean);
       let teams=[];if(teamIds.length){const q=await sb.from('athletics_relay_teams').select('*').in('id',teamIds);if(q.error)throw q.error;teams=q.data||[]}
       heatEntries=(rows||[]).map(en=>({...en,relayColor:(teams.find(t=>t.id===en.relay_team_id)||{}).color||''}));
-      heatContext.innerHTML='<b>'+esc(ev.name)+'</b> · FINAL<br><span class="small">'+heatEntries.length+' relay teams · double points</span>';heatContext.classList.add('show');
+      heatContext.innerHTML='<span class="heatTitle">'+esc(ev.name)+' · FINAL</span><span class="heatCount">'+heatEntries.length+' relay teams</span>';heatContext.classList.add('show');
       renderLanes();return;
     }
     if(!heatId)return;
