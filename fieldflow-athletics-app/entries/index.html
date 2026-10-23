@@ -1,75 +1,211 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#071d2d"><title>FieldFlow Athletics · Entries</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#071d2d">
+<title>FieldFlow Athletics · Entries</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--navy:#071d2d;--cyan:#12c8ff;--blue:#0b5fff;--green:#18d39e;--red:#ff4d4d;--ink:#eaf3f8;--muted:#91a7b4;--line:#17384b;--card:#0b2638}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#04121b;color:var(--ink);min-height:100vh}.shell{max-width:1600px;margin:auto;padding:16px}.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.brand{display:flex;gap:10px;align-items:center}.brand img{width:44px;height:44px;border-radius:12px}.brand h1{font-size:20px;margin:0}.sub,.muted{color:var(--muted);font-size:12px}.nav{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.nav a{color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:800}.nav a.active{background:var(--blue);color:#fff}.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}.filters{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;margin-bottom:12px}label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}select{width:100%;background:#061c2a;border:1px solid #21465a;color:#fff;border-radius:10px;padding:10px}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.btn{border:0;border-radius:10px;padding:9px 12px;font-weight:800;background:#17384b;color:#fff}.btn.primary{background:var(--blue)}.btn.good{background:var(--green);color:#04251c}.btn:disabled{opacity:.5}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px;max-height:72vh}table{border-collapse:collapse;min-width:900px;width:100%}th,td{border-bottom:1px solid #163548;border-right:1px solid #163548;padding:7px;font-size:11px;text-align:center}th{position:sticky;top:0;background:#0a2a3d;z-index:3}.student{position:sticky;left:0;background:#082434;text-align:left;min-width:190px;z-index:2}.student b{display:block}.event{min-width:92px}.entrybox{width:22px;height:22px;accent-color:var(--green)}.status{font-size:12px;font-weight:800}.ok{color:#78efbf}.bad{color:#ff8b8b}@media(max-width:720px){.filters{grid-template-columns:1fr 1fr}.shell{padding:10px}.top{display:block}.tablewrap{max-height:68vh}}
+:root{--navy:#071d2d;--navy2:#04121b;--blue:#0b5fff;--cyan:#12c8ff;--green:#18d39e;--orange:#ff9f1c;--red:#ff4d4d;--ink:#eaf3f8;--muted:#91a7b4;--line:#17384b;--card:#0b2638;--card2:#0e3046}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#061722,var(--navy2) 55%);color:var(--ink);min-height:100vh}
+button,input,select{font:inherit}
+.shell{max-width:1650px;margin:auto;padding:16px}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px}
+.brand{display:flex;align-items:center;gap:10px}.brand img{width:46px;height:46px;border-radius:13px}.brand h1{margin:0;font-size:20px}.sub{color:var(--muted);font-size:12px;margin-top:2px}
+.nav{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.nav a{color:#d7e8f0;text-decoration:none;border:1px solid #285067;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:800}.nav a.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.panel{background:rgba(11,38,56,.96);border:1px solid var(--line);border-radius:16px;box-shadow:0 15px 45px #0004;overflow:hidden}
+.controls{padding:14px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:10px}
+label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+select,input[type="search"]{width:100%;background:#061c2a;border:1px solid #21465a;color:#fff;border-radius:10px;padding:10px}
+.toolbar{padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line);background:#082231}
+.btn{border:0;border-radius:9px;padding:9px 11px;font-weight:800;background:#17384b;color:#fff;cursor:pointer}.btn.primary{background:var(--blue)}.btn.danger{background:var(--red)}.btn.ghost{border:1px solid #285067;background:transparent}.btn:disabled{opacity:.45}
+.summary{margin-left:auto;color:#b9ced8;font-size:12px;font-weight:700}.msg{font-size:12px;font-weight:800}.ok{color:#72edbd}.bad{color:#ff9090}.saving{color:#ffd176}
+.matrixWrap{overflow:auto;max-height:calc(100vh - 250px)}
+table{width:100%;border-collapse:separate;border-spacing:0;min-width:950px}
+th,td{border-right:1px solid #163548;border-bottom:1px solid #163548;padding:7px 8px;font-size:11px;text-align:center;background:#092638}
+thead th{position:sticky;top:0;z-index:5;background:#0a2a3d;color:#c7dae4;text-transform:uppercase;letter-spacing:.04em}
+.nameCol{position:sticky;left:0;z-index:4;text-align:left;min-width:210px;background:#082434}
+thead .nameCol{z-index:7;background:#0a2a3d}
+.idCol{position:sticky;left:210px;z-index:4;min-width:92px;background:#082434}
+thead .idCol{z-index:7;background:#0a2a3d}
+.eventCol{min-width:104px;max-width:130px;white-space:normal}
+.studentName{font-weight:800;font-size:12px}.studentMeta{font-size:10px;color:var(--muted);margin-top:2px}
+.entryCell{cursor:pointer;transition:.12s}.entryCell:hover{background:#0d3248}.entryCell.checked{background:#10392f}
+.entryBox{width:22px;height:22px;accent-color:var(--green);cursor:pointer}
+.eventCount{display:block;font-size:9px;color:var(--muted);font-weight:600;margin-top:3px;text-transform:none}
+tfoot td{position:sticky;bottom:0;background:#0a2a3d;font-weight:900;z-index:3}
+.empty{padding:34px;text-align:center;color:var(--muted)}
+.statusDot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--green)}
+@media(max-width:900px){.controls{grid-template-columns:1fr 1fr}.topbar{display:block}.summary{width:100%;margin-left:0}.matrixWrap{max-height:calc(100vh - 330px)}}
+@media print{
+ @page{size:A4 landscape;margin:7mm}
+ body{background:#fff;color:#111}.topbar,.controls,.toolbar{display:none!important}.shell{max-width:none;padding:0}.panel{border:0;box-shadow:none}.matrixWrap{overflow:visible;max-height:none}
+ table{min-width:0;font-size:8px}.nameCol,.idCol,thead th,tfoot td{position:static!important;background:#f3f5f7!important;color:#111}.nameCol{min-width:120px}.idCol{min-width:55px}.eventCol{min-width:60px}
+ th,td{border:1px solid #bbb;background:#fff!important;padding:3px}.entryBox{appearance:none;width:auto;height:auto}.entryBox:checked:after{content:"✓";font-size:12px;font-weight:900}
+}
 </style>
-<link rel="manifest" href="../manifest.webmanifest"><link rel="apple-touch-icon" href="../icons/icon-192.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
 </head>
-<body><div class="shell">
-<div class="top"><div><div class="brand"><img src="../icons/icon-192.png"><div><h1>FieldFlow Athletics</h1><div class="sub">Entries · existing registrations</div></div></div>
-<div class="nav"><a href="../">Track</a><a href="../field/">Field</a><a class="active" href="./">Entries</a><a href="../students/">Students</a><a href="../print/">Print</a><a href="../cross-country/">Cross Country</a></div></div>
-<div id="user" class="muted"></div></div>
-<div class="panel">
-<div class="filters"><div><label>Category</label><select id="category"></select></div><div><label>Gender</label><select id="gender"><option value="F">Girls</option><option value="M">Boys</option></select></div><div><label>Colour</label><select id="colour"><option>All</option><option>Blue</option><option>Red</option><option>White</option><option>Green</option></select></div><div><label>Discipline</label><select id="discipline"><option value="all">Track + Field</option><option value="track">Track</option><option value="field">Field</option></select></div></div>
-<div class="toolbar"><button class="btn good" id="saveBtn">SAVE ENTRIES</button><span id="summary" class="muted"></span><span id="msg" class="status"></span></div>
-<div class="tablewrap"><table id="matrix"></table></div>
-</div></div>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div>
+      <div class="brand"><img src="../icons/icon-192.png" alt="FieldFlow Athletics"><div><h1>FieldFlow Athletics</h1><div class="sub">Entries · stable registration matrix</div></div></div>
+      <div class="nav"><a href="../">Track</a><a href="../field/">Field</a><a class="active" href="./">Entries</a><a href="../students/">Students</a><a href="../print/">Print</a><a href="../cross-country/">Cross Country</a></div>
+    </div>
+    <div id="user" class="sub"></div>
+  </div>
+
+  <div class="panel">
+    <div class="controls">
+      <div><label>Level</label><select id="level"></select></div>
+      <div><label>Gender</label><select id="gender"><option value="F">Girls</option><option value="M">Boys</option></select></div>
+      <div><label>Colour</label><select id="colour"><option>Red</option><option>Blue</option><option>White</option><option>Green</option></select></div>
+      <div><label>Discipline</label><select id="discipline"><option value="all">All events</option><option value="track">Track</option><option value="field">Field</option></select></div>
+      <div><label>Search student</label><input id="search" type="search" placeholder="Surname or name"></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn ghost" id="printBtn">PRINT A4</button>
+      <button class="btn danger" id="clearBtn">CLEAR VISIBLE</button>
+      <span id="msg" class="msg"></span>
+      <span id="summary" class="summary"></span>
+    </div>
+    <div class="matrixWrap">
+      <table id="matrix"></table>
+    </div>
+  </div>
+</div>
+
 <script>
-const URL='https://qhsvvlcgwdmxxappplzh.supabase.co',KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO',TID='204a8f52-5525-4077-85e4-1d3811d68323';
-const sb=supabase.createClient(URL,KEY),$=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-let athletes=[],events=[],regs=[],dirty=new Map();
-function categories(){return ['Y5','Y6','Y7','Y8','Intermediate','Senior']}
-async function boot(){
- const {data:{session}}=await sb.auth.getSession(); if(!session){location.replace('../');return}
- $('user').textContent=session.user.email||'';
- const [a,e,r]=await Promise.all([
-  sb.from('athletics_athletes').select('*').eq('tournament_id',TID).eq('active',true).order('last_name'),
-  sb.from('athletics_events').select('*').eq('tournament_id',TID).in('discipline',['track','field']).order('sort_order'),
-  sb.from('athletics_registrations').select('*').eq('tournament_id',TID)
- ]);
- const err=a.error||e.error||r.error;if(err){$('msg').textContent=err.message;$('msg').className='status bad';return}
- athletes=a.data||[];events=e.data||[];regs=r.data||[];
- $('category').innerHTML=categories().map(x=>'<option>'+x+'</option>').join('');
- ['category','gender','colour','discipline'].forEach(id=>$(id).onchange=render);
- $('saveBtn').onclick=save; render();
+const SUPABASE_URL='https://qhsvvlcgwdmxxappplzh.supabase.co';
+const SUPABASE_KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
+const TOURNAMENT_ID='204a8f52-5525-4077-85e4-1d3811d68323';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const LEVELS=['Y5','Y6','Y7','Y8','Intermediate','Senior'];
+let athletes=[],events=[],registrations=[];
+let busy=new Set();
+
+function regKey(athleteId,eventId){return athleteId+'|'+eventId}
+function findReg(athleteId,eventId){return registrations.find(r=>r.athlete_id===athleteId&&r.event_id===eventId&&r.status==='registered')}
+function saveFilter(){
+  try{localStorage.setItem('ff-entries-filter',JSON.stringify({level:$('level').value,gender:$('gender').value,colour:$('colour').value,discipline:$('discipline').value}))}catch(_){}
 }
-function existing(regKey){const [athleteId,eventId]=regKey.split('|');return regs.find(r=>r.athlete_id===athleteId&&r.event_id===eventId)}
+function loadFilter(){
+  let f={};try{f=JSON.parse(localStorage.getItem('ff-entries-filter')||'{}')}catch(_){}
+  if(LEVELS.includes(f.level))$('level').value=f.level;
+  if(['F','M'].includes(f.gender))$('gender').value=f.gender;
+  if(['Red','Blue','White','Green'].includes(f.colour))$('colour').value=f.colour;
+  if(['all','track','field'].includes(f.discipline))$('discipline').value=f.discipline;
+}
+function currentData(){
+  const level=$('level').value,gender=$('gender').value,colour=$('colour').value,discipline=$('discipline').value,q=$('search').value.trim().toLowerCase();
+  const aa=athletes.filter(a=>a.level===level&&a.gender===gender&&a.color===colour&&(!q||((a.last_name+' '+a.first_name+' '+a.external_code).toLowerCase().includes(q))));
+  const ee=events.filter(e=>e.category===level&&e.gender===gender&&(discipline==='all'||e.discipline===discipline));
+  return {aa,ee,level,gender,colour};
+}
 function render(){
- dirty.clear();$('msg').textContent='';
- const cat=$('category').value,g=$('gender').value,col=$('colour').value,disc=$('discipline').value;
- const aa=athletes.filter(a=>a.level===cat&&a.gender===g&&(col==='All'||a.color===col));
- const ee=events.filter(e=>e.category===cat&&e.gender===g&&(disc==='all'||e.discipline===disc));
- let html='<thead><tr><th class="student">Student</th>'+ee.map(e=>'<th class="event">'+esc(e.name)+'<div class="muted">'+esc(e.discipline)+'</div></th>').join('')+'</tr></thead><tbody>';
- html+=aa.map(a=>'<tr><td class="student"><b>'+esc(a.last_name)+', '+esc(a.first_name)+'</b><span class="muted">'+esc(a.color)+' · '+esc(a.external_code)+'</span></td>'+ee.map(e=>{
-   const r=regs.find(x=>x.athlete_id===a.id&&x.event_id===e.id),checked=r&&r.status==='registered';
-   return '<td><input class="entrybox" type="checkbox" data-a="'+a.id+'" data-e="'+e.id+'" '+(checked?'checked':'')+'></td>'
- }).join('')+'</tr>').join('');
- html+='</tbody>';$('matrix').innerHTML=html;
- $('matrix').querySelectorAll('.entrybox').forEach(cb=>cb.onchange=()=>{dirty.set(cb.dataset.a+'|'+cb.dataset.e,cb.checked);$('msg').textContent=dirty.size+' pending change'+(dirty.size===1?'':'s');$('msg').className='status'});
- const active=regs.filter(r=>r.status==='registered'&&ee.some(e=>e.id===r.event_id)&&aa.some(a=>a.id===r.athlete_id)).length;
- $('summary').textContent=aa.length+' students · '+ee.length+' events · '+active+' active entries';
-}
-async function save(){
- if(!dirty.size)return;
- $('saveBtn').disabled=true;$('msg').textContent='Saving…';
- try{
-  for(const [key,checked] of dirty){
-   const [athlete_id,event_id]=key.split('|'),r=existing(key);
-   if(checked){
-    if(r){const q=await sb.from('athletics_registrations').update({status:'registered',updated_at:new Date().toISOString()}).eq('id',r.id);if(q.error)throw q.error}
-    else{const q=await sb.from('athletics_registrations').insert({tournament_id:TID,event_id,athlete_id,status:'registered'}).select().single();if(q.error)throw q.error;regs.push(q.data)}
-   }else if(r){
-    const q=await sb.from('athletics_registrations').delete().eq('id',r.id);if(q.error)throw q.error;regs=regs.filter(x=>x.id!==r.id)
-   }
+  saveFilter();
+  const {aa,ee,level,gender,colour}=currentData();
+  const counts=new Map();
+  ee.forEach(e=>counts.set(e.id,registrations.filter(r=>r.event_id===e.id&&r.status==='registered'&&aa.some(a=>a.id===r.athlete_id)).length));
+  let html='<thead><tr><th class="nameCol">Surname, Name</th><th class="idCol">ID</th>'+
+    ee.map(e=>'<th class="eventCol">'+esc(e.name)+'<span class="eventCount">'+esc(e.discipline)+'</span></th>').join('')+'</tr></thead><tbody>';
+  if(!aa.length||!ee.length){
+    html+='<tr><td colspan="'+Math.max(2,ee.length+2)+'" class="empty">No students or events for '+esc(level)+' · '+esc(gender==='F'?'Girls':'Boys')+' · '+esc(colour)+'.</td></tr>';
+  }else{
+    html+=aa.map(a=>'<tr><td class="nameCol"><div class="studentName">'+esc(a.last_name)+', '+esc(a.first_name)+'</div><div class="studentMeta">'+esc(a.level)+' · '+esc(a.color)+'</div></td><td class="idCol">'+esc(a.external_code)+'</td>'+
+      ee.map(e=>{const checked=!!findReg(a.id,e.id),key=regKey(a.id,e.id),disabled=busy.has(key);return '<td class="entryCell '+(checked?'checked':'')+'"><input class="entryBox" type="checkbox" data-a="'+a.id+'" data-e="'+e.id+'" '+(checked?'checked':'')+' '+(disabled?'disabled':'')+'></td>'}).join('')+'</tr>').join('');
   }
-  dirty.clear();$('msg').textContent='Entries saved.';$('msg').className='status ok';render();
- }catch(err){$('msg').textContent=err.message||err;$('msg').className='status bad'}
- finally{$('saveBtn').disabled=false}
+  html+='</tbody><tfoot><tr><td class="nameCol">TOTALS</td><td class="idCol">'+aa.length+' students</td>'+ee.map(e=>'<td>'+counts.get(e.id)+'</td>').join('')+'</tr></tfoot>';
+  $('matrix').innerHTML=html;
+  $('matrix').querySelectorAll('.entryBox').forEach(cb=>cb.onchange=()=>toggleRegistration(cb));
+  const totalVisible=ee.reduce((n,e)=>n+(counts.get(e.id)||0),0);
+  $('summary').innerHTML='<span class="statusDot"></span>'+aa.length+' students · '+ee.length+' events · '+totalVisible+' entries';
+}
+async function toggleRegistration(cb){
+  const athleteId=cb.dataset.a,eventId=cb.dataset.e,key=regKey(athleteId,eventId),wanted=cb.checked;
+  if(busy.has(key))return;
+  busy.add(key);cb.disabled=true;$('msg').textContent='Auto-saving…';$('msg').className='msg saving';
+  try{
+    const existing=findReg(athleteId,eventId);
+    if(wanted){
+      if(!existing){
+        const {data,error}=await sb.from('athletics_registrations')
+          .insert({tournament_id:TOURNAMENT_ID,event_id:eventId,athlete_id:athleteId,status:'registered'})
+          .select('*').single();
+        if(error)throw error;
+        registrations.push(data);
+      }
+    }else if(existing){
+      const {error}=await sb.from('athletics_registrations').delete().eq('id',existing.id);
+      if(error)throw error;
+      registrations=registrations.filter(r=>r.id!==existing.id);
+    }
+    $('msg').textContent='Saved';$('msg').className='msg ok';
+  }catch(err){
+    cb.checked=!wanted;
+    $('msg').textContent='Error: '+(err.message||err);$('msg').className='msg bad';
+  }finally{
+    busy.delete(key);
+    render();
+    setTimeout(()=>{if($('msg').textContent==='Saved')$('msg').textContent=''},1200);
+  }
+}
+async function clearVisible(){
+  const {aa,ee}=currentData();
+  const ids=registrations.filter(r=>r.status==='registered'&&aa.some(a=>a.id===r.athlete_id)&&ee.some(e=>e.id===r.event_id)).map(r=>r.id);
+  if(!ids.length)return;
+  if(!confirm('Clear '+ids.length+' visible entries for this Level / Gender / Colour?'))return;
+  $('clearBtn').disabled=true;$('msg').textContent='Clearing…';$('msg').className='msg saving';
+  try{
+    const {error}=await sb.from('athletics_registrations').delete().in('id',ids);
+    if(error)throw error;
+    const set=new Set(ids);registrations=registrations.filter(r=>!set.has(r.id));
+    $('msg').textContent='Visible entries cleared.';$('msg').className='msg ok';render();
+  }catch(err){$('msg').textContent='Error: '+(err.message||err);$('msg').className='msg bad'}
+  finally{$('clearBtn').disabled=false}
+}
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){location.replace('../');return}
+  $('user').textContent=session.user.email||'';
+  $('level').innerHTML=LEVELS.map(x=>'<option>'+x+'</option>').join('');
+  const [a,e,r]=await Promise.all([
+    sb.from('athletics_athletes').select('id,external_code,last_name,first_name,level,gender,color,active').eq('tournament_id',TOURNAMENT_ID).eq('active',true).order('last_name').order('first_name'),
+    sb.from('athletics_events').select('id,name,discipline,category,gender,sort_order').eq('tournament_id',TOURNAMENT_ID).in('discipline',['track','field']).order('sort_order'),
+    sb.from('athletics_registrations').select('id,event_id,athlete_id,status').eq('tournament_id',TOURNAMENT_ID)
+  ]);
+  const err=a.error||e.error||r.error;
+  if(err){$('msg').textContent='Load error: '+err.message;$('msg').className='msg bad';return}
+  athletes=a.data||[];events=e.data||[];registrations=r.data||[];
+  loadFilter();
+
+  // If this browser has no previous Entries filter, open the group with the most
+  // existing registrations so previously-entered data is visible immediately.
+  if(!localStorage.getItem('ff-entries-filter')){
+    const groupCounts=new Map();
+    registrations.filter(x=>x.status==='registered').forEach(rg=>{
+      const ev=events.find(e=>e.id===rg.event_id),at=athletes.find(a=>a.id===rg.athlete_id);
+      if(!ev||!at)return;
+      const k=at.level+'|'+at.gender+'|'+at.color;
+      groupCounts.set(k,(groupCounts.get(k)||0)+1);
+    });
+    const best=[...groupCounts.entries()].sort((x,y)=>y[1]-x[1])[0];
+    if(best){const [l,g,c]=best[0].split('|');$('level').value=l;$('gender').value=g;$('colour').value=c}
+  }
+
+  ['level','gender','colour','discipline'].forEach(id=>$(id).onchange=render);
+  $('search').oninput=render;
+  $('printBtn').onclick=()=>window.print();
+  $('clearBtn').onclick=clearVisible;
+  render();
 }
 boot();
-</script></body></html>
+</script>
+</body>
+</html>
