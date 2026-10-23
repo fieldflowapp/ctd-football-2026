@@ -87,12 +87,17 @@ video{width:100%;height:100%;object-fit:cover;background:#000;touch-action:none}
 .slider .small{font-size:9px}
 input[type=range]{width:100%;margin:0;touch-action:pan-x}
 #prevFrame,#markFinish,#nextFrame{min-height:44px;padding:7px 4px;font-size:12px;touch-action:manipulation}
-#assignPanel{display:none;position:fixed;z-index:1000;left:8px;right:8px;bottom:calc(74px + env(safe-area-inset-bottom));max-height:calc(var(--app-height,100dvh) - 180px);background:#071d2df7;border:1px solid #285067;border-radius:14px;padding:10px;box-shadow:0 10px 40px #000b;overflow:hidden}
+#assignPanel{display:none;position:fixed;z-index:1000;left:8px;right:8px;top:calc(118px + env(safe-area-inset-top));bottom:calc(82px + env(safe-area-inset-bottom));background:#071d2df7;border:1px solid #285067;border-radius:14px;padding:10px;box-shadow:0 10px 40px #000b;overflow:hidden}
 #assignPanel.show{display:flex;flex-direction:column}
-.assignTitle{text-align:center;font-weight:900;font-size:13px;margin-bottom:7px;flex:0 0 auto}
-.lanes{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-y:auto;overscroll-behavior:contain;min-height:0;flex:1 1 auto;padding-right:2px}
+.assignTitle{text-align:center;font-weight:900;font-size:13px;margin-bottom:7px;flex:0 0 auto;position:sticky;top:0;background:#071d2df7;z-index:2;padding-bottom:2px}
+.lanes{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-y:auto;overscroll-behavior:contain;min-height:0;flex:1 1 auto;padding-right:2px;align-content:start}
 .laneBtn{background:#102f44;color:#fff;text-align:left;border:1px solid #ffffff18;padding:8px 9px;min-height:48px;touch-action:manipulation}
 .laneBtn.saved{background:#153b31;border-color:var(--green)}
+#assignPanel.largeHeat .lanes{gap:4px}
+#assignPanel.largeHeat .laneBtn{min-height:42px;padding:6px 7px}
+#assignPanel.largeHeat .laneNo{font-size:12px}
+#assignPanel.largeHeat .athlete{font-size:8px}
+#assignPanel.largeHeat .savedTime{font-size:9px}
 .laneNo{font-size:14px;color:var(--cyan);font-weight:900}.athlete{display:block;font-size:9px;color:#d8e2e9;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.savedTime{display:block;font-size:10px;color:#7cf0bf;margin-top:2px}
 .pendingTime{color:var(--orange)!important}
 .marks{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;max-height:86px;min-height:0;overflow-y:auto;overscroll-behavior:contain;border-top:1px solid #ffffff18;padding-top:4px}
@@ -116,7 +121,7 @@ input[type=range]{width:100%;margin:0;touch-action:pan-x}
   #prevFrame,#markFinish,#nextFrame{min-height:40px;font-size:11px}
 }
 @media(max-height:820px){
-  #assignPanel{bottom:calc(70px + env(safe-area-inset-bottom));max-height:calc(var(--app-height,100dvh) - 150px);padding:8px}
+  #assignPanel{top:calc(104px + env(safe-area-inset-top));bottom:calc(78px + env(safe-area-inset-bottom));padding:8px}
   .lanes{gap:5px}
   .laneBtn{min-height:44px;padding:7px 8px}
   .laneNo{font-size:13px}
@@ -517,6 +522,7 @@ async function loadHeat(){
   }catch(err){heatContext.innerHTML='<span style="color:#ff9f1c">Load error: '+esc(err.message||err)+'</span>';heatContext.classList.add('show')}
 }
 function renderLanes(){
+  assignPanel.classList.toggle('largeHeat',heatEntries.length>8);
   laneButtons.innerHTML=heatEntries.sort((a,b)=>(a.lane??999)-(b.lane??999)).map((en,i)=>{
     const a=en.athlete||{},lane=en.lane??(i+1),displayName=relayMode?('Relay '+(en.relayColor||'')):((a.last_name||'')+', '+(a.first_name||''));
     const staged=stagedAssignments.get(en.id);
