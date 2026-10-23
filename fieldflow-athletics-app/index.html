@@ -821,9 +821,10 @@ boot();
 
       if(localBuild!==serverBuild){
         localStorage.setItem('ff-athletics-build',serverBuild);
-        updateToast.classList.add('show');
         await activateNewestWorker();
-        setTimeout(()=>location.reload(),350);
+        updateToast.textContent='FieldFlow updated · changes apply on next open';
+        updateToast.classList.add('show');
+        setTimeout(()=>updateToast.classList.remove('show'),2200);
       }
     }catch(err){
       console.warn('Build check failed',err);
@@ -853,8 +854,12 @@ boot();
         navigator.serviceWorker.addEventListener('controllerchange',()=>{
           if(refreshing)return;
           refreshing=true;
+          updateToast.textContent='FieldFlow updated · changes apply on next open';
           updateToast.classList.add('show');
-          setTimeout(()=>location.reload(),250);
+          setTimeout(()=>{
+            updateToast.classList.remove('show');
+            refreshing=false;
+          },2200);
         });
 
         await checkBuild();
