@@ -53,6 +53,10 @@ th{background:#f2f5f7;font-size:10px;text-transform:uppercase}
 </div>
 <div id="main" class="hidden">
   <div class="bar">
+    <button onclick="location.href='../'">Track</button>
+    <button onclick="location.href='../entries/'">Entries</button>
+    <button onclick="location.href='../students/'">Students</button>
+    <button onclick="location.href='../cross-country/'">Cross Country</button>
     <select id="eventSelect"></select>
     <button id="loadBtn">Load</button>
     <div class="spacer"></div>
@@ -75,7 +79,7 @@ async function init(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){$('login').classList.remove('hidden');return}
   $('main').classList.remove('hidden');
-  const {data:events,error}=await sb.from('athletics_events').select('*').eq('tournament_id',TOURNAMENT_ID).eq('discipline','track').order('category').order('gender').order('sort_order');
+  const {data:events,error}=await sb.from('athletics_events').select('*').eq('tournament_id',TOURNAMENT_ID).in('discipline',['track','field']).order('category').order('gender').order('discipline').order('sort_order');
   if(error){$('sheet').innerHTML='<div class="empty">'+esc(error.message)+'</div>';return}
   $('eventSelect').innerHTML=(events||[]).map(e=>'<option value="'+e.id+'">'+esc(eventTitle(e))+'</option>').join('');
   const q=new URLSearchParams(location.search).get('event');
@@ -107,6 +111,10 @@ async function loadEvent(eventId){
   const entryRows=(heatId)=>evEntries.filter(x=>x.heat_id===heatId).sort((a,b)=>(a.lane??999)-(b.lane??999));
   const athleteForEntry=(en)=>{const r=rBy.get(en.registration_id);return r?aBy.get(r.athlete_id):null};
   const record=event.record_value?('<b>Record:</b> '+esc(event.record_value)+(event.record_year?' · '+esc(event.record_year):'')):'<b>Record:</b> —';
+  if(event.discipline==='field'){
+    await renderFieldEvent(event,regs||[],athletes,record);
+    return;
+  }
   let out='<header class="head"><div><h1>FieldFlow Athletics</h1><div class="meta">'+esc(eventTitle(event))+'</div></div><div class="record">'+record+'</div></header>';
   out+='<h2>Event summary</h2><table><tbody><tr><th>Category</th><td>'+esc(event.category)+'</td><th>Gender</th><td>'+esc(gender(event.gender))+'</td></tr><tr><th>Event</th><td>'+esc(event.name)+'</td><th>Code</th><td>'+esc(event.code)+'</td></tr><tr><th>Registered</th><td>'+esc((regs||[]).filter(r=>r.status==='registered').length)+'</td><th>Finalists</th><td>'+esc(event.has_final?(event.finalists_count||8):'No final')+'</td></tr></tbody></table>';
 
@@ -137,6 +145,43 @@ async function loadEvent(eventId){
     out+='<table><thead><tr><th class="center">Place</th><th>Athlete</th><th>Colour</th><th class="right">Performance</th><th class="center">Points</th></tr></thead><tbody>';
     (ledger||[]).forEach(x=>{out+='<tr><td class="center strong">'+esc(x.place)+'</td><td>'+esc(x.last_name+', '+x.first_name)+'</td><td>'+esc(x.color)+'</td><td class="right">'+esc(perf(x.performance_numeric,x.performance_unit))+'</td><td class="center strong">'+esc(Number(x.points))+'</td></tr>'});
     out+='</tbody></table>';
+  }
+  out+='<div class="footer"><span>FieldFlow Athletics</span><span>Printed '+esc(new Date().toLocaleString())+'</span></div>';
+  $('sheet').innerHTML=out;
+}
+async function renderFieldEvent(event,regs,athletes,record){
+  const aBy=new Map((athletes||[]).map(a=>[a.id,a]));
+  const rBy=new Map((regs||[]).map(r=>[r.id,r]));
+  const athleteForReg=id=>{const r=rBy.get(id);return r?aBy.get(r.athlete_id):null};
+  const activeRegs=(regs||[]).filter(r=>r.status==='registered');
+  let out='<header class="head"><div><h1>FieldFlow Athletics</h1><div class="meta">'+esc(eventTitle(event))+' · Field</div></div><div class="record">'+record+'</div></header>';
+  out+='<h2>Event summary</h2><table><tbody><tr><th>Category</th><td>'+esc(event.category)+'</td><th>Gender</th><td>'+esc(gender(event.gender))+'</td></tr><tr><th>Event</th><td>'+esc(event.name)+'</td><th>Registered</th><td>'+activeRegs.length+'</td></tr></tbody></table>';
+
+  const isHigh=/high\s*jump/i.test(event.name)||/HIGH/i.test(event.code||'');
+  if(isHigh){
+    const [h,a,r]=await Promise.all([
+      sb.from('athletics_high_jump_heights').select('*').eq('event_id',event.id).order('sequence_no'),
+      sb.from('athletics_high_jump_attempts').select('*').eq('event_id',event.id),
+      sb.from('athletics_high_jump_ranking').select('*').eq('event_id',event.id).order('place')
+    ]);
+    const err=h.error||a.error||r.error;if(err){$('sheet').innerHTML='<div class="empty">'+esc(err.message)+'</div>';return}
+    const heights=h.data||[],attempts=a.data||[],ranking=r.data||[];
+    out+='<h2>Competition sheet</h2><div style="overflow:auto"><table><thead><tr><th>Athlete</th><th>Colour</th>'+heights.map(x=>'<th class="center">'+Number(x.height_m).toFixed(2)+'</th>').join('')+'</tr></thead><tbody>';
+    activeRegs.forEach(reg=>{const at=athleteForReg(reg.id)||{};out+='<tr><td>'+esc((at.last_name||'')+', '+(at.first_name||''))+'</td><td>'+esc(at.color||'')+'</td>'+heights.map(hh=>{const aa=attempts.filter(x=>x.registration_id===reg.id&&x.height_id===hh.id).sort((x,y)=>x.attempt_no-y.attempt_no);const txt=aa.map(x=>x.result==='clear'?'O':x.result==='miss'?'X':'P').join(' ');return '<td class="center">'+esc(txt||'—')+'</td>'}).join('')+'</tr>'});
+    out+='</tbody></table></div><h2>Ranking</h2>';
+    out+=ranking.length?'<table><thead><tr><th class="center">Place</th><th>Athlete</th><th>Colour</th><th class="right">Best height</th><th class="center">Points</th></tr></thead><tbody>'+ranking.map(x=>'<tr><td class="center strong">'+esc(x.place)+'</td><td>'+esc(x.last_name+', '+x.first_name)+'</td><td>'+esc(x.color)+'</td><td class="right">'+(x.best_height==null?'—':Number(x.best_height).toFixed(2)+' m')+'</td><td class="center strong">'+esc(x.points??'—')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">No ranking available yet.</div>';
+  }else{
+    const [a,r]=await Promise.all([
+      sb.from('athletics_field_attempts').select('*').eq('event_id',event.id).order('attempt_no'),
+      sb.from('athletics_field_measured_ranking').select('*').eq('event_id',event.id).order('place')
+    ]);
+    const err=a.error||r.error;if(err){$('sheet').innerHTML='<div class="empty">'+esc(err.message)+'</div>';return}
+    const attempts=a.data||[],ranking=r.data||[];
+    const maxAttempt=Math.max(event.attempt_limit||3,...attempts.map(x=>x.attempt_no||0),3);
+    out+='<h2>Competition sheet</h2><table><thead><tr><th>Athlete</th><th>Colour</th>'+Array.from({length:maxAttempt},(_,i)=>'<th class="center">Attempt '+(i+1)+'</th>').join('')+'<th class="right">Best</th></tr></thead><tbody>';
+    activeRegs.forEach(reg=>{const at=athleteForReg(reg.id)||{},aa=attempts.filter(x=>x.registration_id===reg.id);const best=aa.filter(x=>x.status==='valid'&&x.mark_m!=null).reduce((m,x)=>Math.max(m,Number(x.mark_m)),0);out+='<tr><td>'+esc((at.last_name||'')+', '+(at.first_name||''))+'</td><td>'+esc(at.color||'')+'</td>'+Array.from({length:maxAttempt},(_,i)=>{const x=aa.find(y=>y.attempt_no===i+1);if(!x)return '<td class="center">—</td>';const txt=x.status==='valid'&&x.mark_m!=null?Number(x.mark_m).toFixed(2):(x.status||'—').toUpperCase();return '<td class="center">'+esc(txt)+'</td>'}).join('')+'<td class="right strong">'+(best?best.toFixed(2)+' m':'—')+'</td></tr>'});
+    out+='</tbody></table><h2>Ranking</h2>';
+    out+=ranking.length?'<table><thead><tr><th class="center">Place</th><th>Athlete</th><th>Colour</th><th class="right">Best mark</th><th class="center">Points</th></tr></thead><tbody>'+ranking.map(x=>'<tr><td class="center strong">'+esc(x.place)+'</td><td>'+esc(x.last_name+', '+x.first_name)+'</td><td>'+esc(x.color)+'</td><td class="right">'+(x.best_mark==null?'—':Number(x.best_mark).toFixed(2)+' m')+'</td><td class="center strong">'+esc(x.points??'—')+'</td></tr>').join('')+'</tbody></table>':'<div class="empty">No ranking available yet.</div>';
   }
   out+='<div class="footer"><span>FieldFlow Athletics</span><span>Printed '+esc(new Date().toLocaleString())+'</span></div>';
   $('sheet').innerHTML=out;
