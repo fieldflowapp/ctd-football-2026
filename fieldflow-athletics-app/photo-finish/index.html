@@ -87,10 +87,10 @@ video{width:100%;height:100%;object-fit:cover;background:#000;touch-action:none}
 .slider .small{font-size:9px}
 input[type=range]{width:100%;margin:0;touch-action:pan-x}
 #prevFrame,#markFinish,#nextFrame{min-height:44px;padding:7px 4px;font-size:12px;touch-action:manipulation}
-#assignPanel{display:none;position:absolute;z-index:50;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));background:#071d2df7;border:1px solid #285067;border-radius:14px;padding:10px;box-shadow:0 10px 40px #000b}
-#assignPanel.show{display:block}
-.assignTitle{text-align:center;font-weight:900;font-size:13px;margin-bottom:7px}
-.lanes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#assignPanel{display:none;position:fixed;z-index:1000;left:8px;right:8px;bottom:calc(74px + env(safe-area-inset-bottom));max-height:calc(var(--app-height,100dvh) - 180px);background:#071d2df7;border:1px solid #285067;border-radius:14px;padding:10px;box-shadow:0 10px 40px #000b;overflow:hidden}
+#assignPanel.show{display:flex;flex-direction:column}
+.assignTitle{text-align:center;font-weight:900;font-size:13px;margin-bottom:7px;flex:0 0 auto}
+.lanes{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-y:auto;overscroll-behavior:contain;min-height:0;flex:1 1 auto;padding-right:2px}
 .laneBtn{background:#102f44;color:#fff;text-align:left;border:1px solid #ffffff18;padding:8px 9px;min-height:48px;touch-action:manipulation}
 .laneBtn.saved{background:#153b31;border-color:var(--green)}
 .laneNo{font-size:14px;color:var(--cyan);font-weight:900}.athlete{display:block;font-size:9px;color:#d8e2e9;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.savedTime{display:block;font-size:10px;color:#7cf0bf;margin-top:2px}
@@ -114,6 +114,12 @@ input[type=range]{width:100%;margin:0;touch-action:pan-x}
   .playBtn,.pauseBtn{min-height:38px}
   .reviewTime{font-size:22px}
   #prevFrame,#markFinish,#nextFrame{min-height:40px;font-size:11px}
+}
+@media(max-height:820px){
+  #assignPanel{bottom:calc(70px + env(safe-area-inset-bottom));max-height:calc(var(--app-height,100dvh) - 150px);padding:8px}
+  .lanes{gap:5px}
+  .laneBtn{min-height:44px;padding:7px 8px}
+  .laneNo{font-size:13px}
 }
 @media(max-height:700px){
   header{min-height:42px;padding:5px 7px}
@@ -506,7 +512,7 @@ async function loadHeat(){
     const athleteIds=regs.map(r=>r.athlete_id).filter(Boolean);
     let athletes=[];if(athleteIds.length){const q=await sb.from('athletics_athletes').select('*').in('id',athleteIds);if(q.error)throw q.error;athletes=q.data||[]}
     heatEntries=(entries||[]).map(en=>{const reg=regs.find(r=>r.id===en.registration_id);const athlete=reg?athletes.find(a=>a.id===reg.athlete_id):null;return {...en,athlete}});
-    heatContext.innerHTML='<b>'+esc(ev.name)+'</b> · Heat '+esc(h.heat_number)+'<br><span class="small">'+heatEntries.length+' athletes</span>';heatContext.classList.add('show');
+    heatContext.innerHTML='<span class="heatTitle">'+esc(ev.name)+' · Heat '+esc(h.heat_number)+'</span><span class="heatCount">'+heatEntries.length+' athletes</span>';heatContext.classList.add('show');
     renderLanes();
   }catch(err){heatContext.innerHTML='<span style="color:#ff9f1c">Load error: '+esc(err.message||err)+'</span>';heatContext.classList.add('show')}
 }
