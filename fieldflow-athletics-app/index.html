@@ -752,12 +752,31 @@ boot();
 
   const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
   const isiOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isAndroid=()=>/android/i.test(navigator.userAgent);
+  const isWindows=()=>/windows/i.test(navigator.userAgent);
+  const installRequested=new URLSearchParams(location.search).get('install')==='1';
 
   function showIOSInstall(){
     if(isStandalone())return;
-    installTitle.textContent='Add FieldFlow Athletics to Home Screen';
-    installText.textContent='On iPhone/iPad, Safari requires Add to Home Screen from the Share menu.';
+    installTitle.textContent='Install FieldFlow Athletics';
+    installText.textContent='iPhone/iPad requires the Safari Add to Home Screen action.';
     installSteps.innerHTML='<b>Safari:</b><br>1. Tap Share ⬆<br>2. Choose <b>Add to Home Screen</b><br>3. Tap <b>Add</b>';
+    installOverlay.classList.add('show');
+  }
+
+  function showBrowserInstallHelp(){
+    if(isStandalone())return;
+    installTitle.textContent='Install FieldFlow Athletics';
+    if(isAndroid()){
+      installText.textContent='Chrome can install FieldFlow Athletics as an app.';
+      installSteps.innerHTML='<b>Android / Chrome:</b><br>1. Open the ⋮ menu<br>2. Tap <b>Install app</b> or <b>Add to Home screen</b><br>3. Confirm <b>Install</b>';
+    }else if(isWindows()){
+      installText.textContent='Chrome or Edge can install FieldFlow Athletics as a Windows app.';
+      installSteps.innerHTML='<b>Windows:</b><br>1. Open the browser menu<br>2. Choose <b>Install FieldFlow Athletics</b> / <b>Apps → Install this site as an app</b><br>3. Confirm <b>Install</b>';
+    }else{
+      installText.textContent='Use your browser install option to install FieldFlow Athletics.';
+      installSteps.innerHTML='Open the browser menu and choose <b>Install app</b> or <b>Add to Home screen</b>.';
+    }
     installOverlay.classList.add('show');
   }
 
@@ -778,20 +797,22 @@ boot();
   installBtn.addEventListener('click',async()=>{
     if(deferredInstallPrompt){
       deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
+      const choice=await deferredInstallPrompt.userChoice;
       deferredInstallPrompt=null;
-      installBtn.classList.remove('show');
+      if(choice&&choice.outcome==='accepted')installBtn.classList.remove('show');
       return;
     }
     if(isiOS())showIOSInstall();
+    else showBrowserInstallHelp();
   });
 
   closeInstall.addEventListener('click',()=>installOverlay.classList.remove('show'));
   installOverlay.addEventListener('click',e=>{if(e.target===installOverlay)installOverlay.classList.remove('show')});
 
-  if(isiOS()&&!isStandalone()){
-    installBtn.textContent='＋ ADD TO HOME SCREEN';
+  if(!isStandalone()){
+    installBtn.textContent=isiOS()?'＋ ADD TO HOME SCREEN':'⬇ INSTALL APP';
     installBtn.classList.add('show');
+    if(installRequested&&isiOS())setTimeout(showIOSInstall,250);
   }
 
   async function activateNewestWorker(){
