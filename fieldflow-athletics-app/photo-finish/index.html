@@ -213,7 +213,7 @@ const cameraBtn=$('cameraBtn'),startBtn=$('startBtn'),recordBtn=$('recordBtn'),s
 const reviewPanel=$('reviewPanel'),reviewTime=$('reviewTime'),scrubber=$('scrubber'),prevFrame=$('prevFrame'),nextFrame=$('nextFrame'),markFinish=$('markFinish'),playVideoBtn=$('playVideoBtn'),pauseVideoBtn=$('pauseVideoBtn'),reviewBackBtn=$('reviewBackBtn'),liveCameraBtn=$('liveCameraBtn');
 const heatContext=$('heatContext'),assignPanel=$('assignPanel'),assignTitle=$('assignTitle'),laneButtons=$('laneButtons'),marksEl=$('marks'),saveResultsBtn=$('saveResultsBtn');
 
-let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[],stagedAssignments=new Map(),targetVideoBitrate=8000000,actualFps=60,captureVideoWidth=0,captureVideoHeight=0,captureOrientationAngle=0,reviewRotation=0;
+let stream=null,recorder=null,chunks=[],raceRunning=false,raceStart=0,raf=0,videoUrl=null,recordRaceMs=0,pendingMs=null,marks=[],heatEntries=[],stagedAssignments=new Map(),targetVideoBitrate=8000000,actualFps=60,captureVideoWidth=0,captureVideoHeight=0,captureOrientationAngle=0,reviewRotation=0,reviewCameraSuspended=false;
 const params=new URLSearchParams(location.search),heatId=params.get('heat'),eventId=params.get('event'),returnUrl=params.get('return'),relayMode=params.get('relay')==='1';
 const SUPABASE_URL='https://qhsvvlcgwdmxxappplzh.supabase.co';
 const SUPABASE_KEY='sb_publishable_AzlSdUYiNA5DM7BXGOe5OA_M8wrJGoO';
@@ -223,6 +223,18 @@ const fmt=ms=>{ms=Math.max(0,ms||0);const m=Math.floor(ms/60000),s=Math.floor((m
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const elapsed=()=>raceRunning?performance.now()-raceStart:0;
 function tick(){timer.textContent=fmt(elapsed());raf=requestAnimationFrame(tick)}
+
+function suspendLiveCamera(){
+  try{
+    if(stream){
+      stream.getTracks().forEach(track=>{try{track.stop()}catch(_){}});
+      stream=null;
+    }
+    camera.pause();
+    camera.srcObject=null;
+    reviewCameraSuspended=true;
+  }catch(_){}
+}
 
 async function openCamera(){
   cameraBtn.style.display='none';
@@ -386,9 +398,16 @@ recordBtn.addEventListener('click',()=>{
   recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
   recorder.onstop=()=>{
     const blob=new Blob(chunks,{type:recorder.mimeType||type||'video/webm'});
+    chunks=[];
     if(videoUrl)URL.revokeObjectURL(videoUrl);
-    videoUrl=URL.createObjectURL(blob);resetReviewOrientation();reviewVideo.src=videoUrl;reviewVideo.load();reviewBtn.disabled=false;
-    status.textContent='Video listo para revisar';mode.textContent='Grabación finalizada';
+    videoUrl=URL.createObjectURL(blob);
+    resetReviewOrientation();
+    reviewVideo.src=videoUrl;
+    reviewVideo.load();
+    reviewBtn.disabled=false;
+    recorder=null;
+    status.textContent='Video listo para revisar';
+    mode.textContent='Grabación finalizada';
   };
   recorder.start(500);recordBtn.disabled=true;mode.textContent='● GRABANDO';
 });
@@ -398,6 +417,7 @@ stopBtn.addEventListener('click',()=>{
 });
 reviewBtn.addEventListener('click',()=>{
   if(!videoUrl)return;
+  suspendLiveCamera();
   camera.style.display='none';
   reviewVideo.style.display='block';
   reviewPanel.classList.add('show');
@@ -408,15 +428,25 @@ reviewBtn.addEventListener('click',()=>{
   updateReview();
   mode.textContent='REVIEW';
 });
-function returnToLiveCamera(){
+async function returnToLiveCamera(){
+  if(stagedAssignments.size>0){
+    const leave=confirm('Hay tiempos pendientes sin SAVE RESULTS. ¿Volver a LIVE CAMERA igualmente?');
+    if(!leave)return;
+  }
   reviewVideo.pause();
   reviewPanel.classList.remove('show');
   document.querySelector('.app').classList.remove('reviewMode');
   resetReviewOrientation();
   reviewVideo.style.display='none';
   camera.style.display='block';
-  try{camera.play()}catch(_){}
-  mode.textContent='Cámara lista';
+  mode.textContent='Reabriendo cámara…';
+  if(reviewCameraSuspended||!stream){
+    await openCamera();
+    reviewCameraSuspended=false;
+  }else{
+    try{await camera.play()}catch(_){}
+    mode.textContent='Cámara lista';
+  }
 }
 liveCameraBtn.addEventListener('click',returnToLiveCamera);
 reviewBackBtn.addEventListener('click',()=>backBtn.click());
@@ -592,6 +622,22 @@ function closeCameraAndBack(){
   location.replace(fallback);
 }
 backBtn.addEventListener('click',closeCameraAndBack);
+
+window.addEventListener('beforeunload',e=>{
+  const recordingActive=raceRunning||(recorder&&recorder.state==='recording');
+  const unsaved=stagedAssignments.size>0;
+  if(recordingActive||unsaved){
+    e.preventDefault();
+    e.returnValue='';
+  }
+});
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden' && (raceRunning||stagedAssignments.size>0)){
+    // Deliberately do nothing: preserve the current race/review state.
+    return;
+  }
+});
 
 loadHeat();
 openCamera();
