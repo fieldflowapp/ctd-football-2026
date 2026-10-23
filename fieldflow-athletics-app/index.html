@@ -822,9 +822,23 @@ boot();
       if(localBuild!==serverBuild){
         localStorage.setItem('ff-athletics-build',serverBuild);
         await activateNewestWorker();
-        updateToast.textContent='FieldFlow updated · changes apply on next open';
+
+        const reloadKey='ff-athletics-reloaded-build';
+        const alreadyReloaded=sessionStorage.getItem(reloadKey);
+        updateToast.textContent='Updating FieldFlow Athletics…';
         updateToast.classList.add('show');
-        setTimeout(()=>updateToast.classList.remove('show'),2200);
+
+        if(alreadyReloaded!==serverBuild){
+          sessionStorage.setItem(reloadKey,serverBuild);
+          setTimeout(()=>{
+            const u=new URL(location.href);
+            u.searchParams.set('_build',serverBuild);
+            location.replace(u.toString());
+          },300);
+          return;
+        }
+
+        setTimeout(()=>updateToast.classList.remove('show'),1800);
       }
     }catch(err){
       console.warn('Build check failed',err);
@@ -854,12 +868,12 @@ boot();
         navigator.serviceWorker.addEventListener('controllerchange',()=>{
           if(refreshing)return;
           refreshing=true;
-          updateToast.textContent='FieldFlow updated · changes apply on next open';
+          updateToast.textContent='FieldFlow update ready';
           updateToast.classList.add('show');
           setTimeout(()=>{
             updateToast.classList.remove('show');
             refreshing=false;
-          },2200);
+          },1200);
         });
 
         await checkBuild();
@@ -870,7 +884,7 @@ boot();
 
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkBuild()});
     window.addEventListener('focus',checkBuild);
-    setInterval(checkBuild,60*60*1000);
+    setInterval(checkBuild,5*60*1000);
   }else{
     window.addEventListener('load',checkBuild);
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkBuild()});
